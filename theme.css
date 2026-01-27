@@ -1,83 +1,49 @@
 /* Import Google Fonts */
-@import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital,wght@0,400;0,600;1,400&family=Inter:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital,wght@0,400;1,400&family=Inter:wght@300;400;500;600&display=swap');
 
 /* GLOBAL STYLING */
 html, body, [class*="css"] {
-    font-family: 'Inter', sans-serif !important;
     background-color: #000000 !important;
     color: #ffffff !important;
 }
 
-/* HEADINGS USE INSTRUMENT SERIF */
-h1, h2, h3, h4, h5, h6 {
-    font-family: 'Instrument Serif', serif !important;
-    letter-spacing: 0.5px;
-}
-
-/* ACCENT COLORS — pastel rainbow */
-:root {
-    --pastel-pink: #f7b3d3;
-    --pastel-orange: #ffd3a3;
-    --pastel-yellow: #fff8a6;
-    --pastel-green: #c6f7d4;
-    --pastel-blue: #b9e6ff;
-    --pastel-purple: #d6c7ff;
-}
-
-/* STREAMLIT BUTTON */
-button[kind="primary"] {
+/* THE GRADIENT BAR */
+.rainbow-bar {
+    height: 8px;
+    width: 100%;
     background: linear-gradient(90deg, 
-        var(--pastel-pink), 
-        var(--pastel-orange), 
-        var(--pastel-yellow),
-        var(--pastel-green),
-        var(--pastel-blue),
-        var(--pastel-purple)
-    ) !important;
-    color: #000 !important;
-    border: none !important;
-    padding: 0.6rem 1.2rem !important;
-    border-radius: 8px !important;
-    font-weight: 600 !important;
+        #cccccc 0%, #cccccc 15%, 
+        #f7b3d3 15%, #f7b3d3 30%, 
+        #ffd3a3 30%, #ffd3a3 45%, 
+        #fff8a6 45%, #fff8a6 60%, 
+        #c6f7d4 60%, #c6f7d4 75%, 
+        #b9e6ff 75%, #b9e6ff 90%, 
+        #d6c7ff 90%, #d6c7ff 100%
+    );
+    border-radius: 10px;
+    margin: 40px 0;
 }
 
-/* ON HOVER */
-button[kind="primary"]:hover {
-    filter: brightness(1.15);
-}
-
-/* SIDEBAR */
-section[data-testid="stSidebar"] {
-    background-color: #0f0f0f !important;
-}
-
-section[data-testid="stSidebar"] * {
-    color: #ffffff !important;
-}
-
-/* CARDS / CONTAINERS */
-div.block-container {
-    padding-top: 2rem;
-}
-
-.stContainer, .stMarkdown, .stDataFrame, .stTextInput, .stSelectbox {
-    background-color: #111111 !important;
-    border-radius: 12px !important;
-    padding: 1rem !important;
-}
-
-/* INPUTS */
-input, textarea, select {
+/* UPDATED OUTLINED BUTTON STYLING */
+div.stButton > button {
+    background-color: transparent !important;
     color: white !important;
-    background-color: #1a1a1a !important;
-    border: 1px solid var(--pastel-blue) !important;
-    border-radius: 6px !important;
+    border: 1px solid white !important;
+    padding: 12px 40px !important; /* Increased horizontal padding */
+    border-radius: 50px !important; /* High value for pill-shaped/rounded edges */
+    font-family: 'Inter', sans-serif !important;
+    font-size: 16px !important;
+    font-weight: 400 !important;
+    width: auto !important; /* Allows button to grow to fit text */
+    min-width: 180px !important; /* Ensures it doesn't get too small */
+    white-space: nowrap !important; /* Forces text to stay on one line */
+    display: block;
+    margin: 0 auto;
 }
 
-/* METRICS */
-.stMetric {
-    background-color: #111;
-    border-left: 4px solid var(--pastel-purple);
-    padding: 0.8rem !important;
-    border-radius: 6px;
+div.stButton > button:hover {
+    background-color: white !important;
+    color: black !important;
+    border: 1px solid white !important;
+    transition: 0.3s ease;
 }
