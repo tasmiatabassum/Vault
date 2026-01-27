@@ -9,7 +9,7 @@ CREATE TABLE Users ( --User is a reserved keyword in PostgreSQL; thus using User
 
 
 CREATE TABLE MediaType (
-    type_id_id SERIAL PRIMARY KEY,
+    type_id SERIAL PRIMARY KEY,
     type_name VARCHAR(50) NOT NULL
 );
 
@@ -53,7 +53,7 @@ CREATE TABLE UserLikes (
 );
 
 CREATE TABLE UserRatings (
-    rating_id SERIALK PRIMARY KEY,
+    rating_id SERIAL PRIMARY KEY,
     user_id INT REFERENCES Users(user_id),
     media_id INT REFERENCES Media(media_id),
     rating_value INT CHECK (rating_value BETWEEN 1 AND 5),
