@@ -86,3 +86,14 @@ CREATE TABLE AuditLog (
     action_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 
 );
+
+-- First, drop any existing versions to avoid naming conflicts
+ALTER TABLE Media DROP CONSTRAINT IF EXISTS unique_media_identity;
+ALTER TABLE Media DROP CONSTRAINT IF EXISTS unique_media_item;
+
+-- Now, add the definitive unique constraint
+ALTER TABLE Media ADD CONSTRAINT unique_media_item UNIQUE (title, release_year);
+
+INSERT INTO MediaType (type_name) 
+VALUES ('movie'), ('book'), ('music')
+ON CONFLICT DO NOTHING;
