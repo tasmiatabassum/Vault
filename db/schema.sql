@@ -45,6 +45,16 @@ CREATE TABLE ListItem (
     added_on TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT unique_list_item UNIQUE (user_id, media_id, list_type)
 );
+CREATE TABLE Tag (
+    tag_id SERIAL PRIMARY KEY,
+    tag_name VARCHAR(50) UNIQUE NOT NULL
+);
+
+CREATE TABLE MediaTag (
+    media_id INT REFERENCES Media(media_id),
+    tag_id INT REFERENCES Tag(tag_id),
+    PRIMARY KEY (media_id, tag_id)
+);
 
 -- --- 1. TRIGGER (Nashat's Role) ---
 -- Automatically logs a record whenever a user 'Likes' media
