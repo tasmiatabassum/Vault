@@ -51,8 +51,8 @@ CREATE TABLE Tag (
 );
 
 CREATE TABLE MediaTag (
-    media_id INT REFERENCES Media(media_id),
-    tag_id INT REFERENCES Tag(tag_id),
+    media_id INT REFERENCES Media(media_id) ON DELETE CASCADE,
+    tag_id INT REFERENCES Tag(tag_id) ON DELETE CASCADE,
     PRIMARY KEY (media_id, tag_id)
 );
 
