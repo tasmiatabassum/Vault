@@ -1,0 +1,169 @@
+/* Import Google Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital,wght@0,400;1,400&family=Inter:wght@300;400;500;600&display=swap');
+
+/* GLOBAL STYLING */
+html, body, [class*="css"] {
+    background-color: #000000 !important;
+    color: #ffffff !important;
+}
+
+/* THE GRADIENT BAR */
+.rainbow-bar {
+    height: 8px;
+    width: 100%;
+    background: linear-gradient(90deg, 
+        #cccccc 0%, #cccccc 15%, 
+        #f7b3d3 15%, #f7b3d3 30%, 
+        #ffd3a3 30%, #ffd3a3 45%, 
+        #fff8a6 45%, #fff8a6 60%, 
+        #c6f7d4 60%, #c6f7d4 75%, 
+        #b9e6ff 75%, #b9e6ff 90%, 
+        #d6c7ff 90%, #d6c7ff 100%
+    );
+    border-radius: 10px;
+    margin: 40px 0;
+}
+
+/* UPDATED OUTLINED BUTTON STYLING */
+div.stButton > button {
+    background-color: transparent !important;
+    color: white !important;
+    border: 1px solid white !important;
+    padding: 12px 40px !important; /* Increased horizontal padding */
+    border-radius: 50px !important; /* High value for pill-shaped/rounded edges */
+    font-family: 'Inter', sans-serif !important;
+    font-size: 16px !important;
+    font-weight: 400 !important;
+    width: auto !important; /* Allows button to grow to fit text */
+    min-width: 180px !important; /* Ensures it doesn't get too small */
+    white-space: nowrap !important; /* Forces text to stay on one line */
+    display: block;
+    margin: 0 auto;
+}
+
+div.stButton > button:hover {
+    background-color: white !important;
+    color: black !important;
+    border: 1px solid white !important;
+    transition: 0.3s ease;
+}
+
+/* AUTHENTICATION PAGE CUSTOMIZATIONS */
+
+/* Style the Radio buttons (Login/Sign Up selector) */
+div[data-testid="stMarkdownContainer"] p {
+    font-family: 'Inter', sans-serif !important;
+    font-weight: 400 !important;
+}
+
+/* Center the authentication container */
+.auth-container {
+    max-width: 400px;
+    margin: 0 auto;
+    padding: 2rem;
+    background-color: #111111;
+    border-radius: 20px;
+    border: 1px solid #333333;
+}
+
+/* Rounded Input Fields */
+input[type="text"], input[type="password"] {
+    border-radius: 10px !important;
+    border: 1px solid #444 !important;
+    background-color: #000 !important;
+    color: white !important;
+    padding: 10px !important;
+}
+
+/* Rounded, Outlined Primary Action Button */
+div.stButton > button {
+    width: 100% !important; /* Make buttons full width for auth */
+    border-radius: 50px !important; 
+    background-color: transparent !important;
+    color: white !important;
+    border: 1px solid white !important;
+    font-family: 'Inter', sans-serif !important;
+    transition: 0.3s;
+}
+
+div.stButton > button:hover {
+    background-color: white !important;
+    color: black !important;
+}
+/* INPUT FIELD STYLING */
+.stTextInput > div > div > input {
+    background-color: #0f0f0f !important;
+    color: white !important;
+    border: 1px solid #333333 !important;
+    border-radius: 12px !important;
+    padding: 12px !important;
+    font-family: 'Inter', sans-serif;
+}
+
+/* PILL-SHAPED OUTLINED BUTTONS */
+div.stButton > button {
+    background-color: transparent !important;
+    color: white !important;
+    border: 1px solid white !important;
+    padding: 10px 40px !important;
+    border-radius: 50px !important; /* Forces the pill shape */
+    font-family: 'Inter', sans-serif !important;
+    text-transform: none !important;
+    width: 100% !important; /* Full width for mobile-friendly auth */
+    white-space: nowrap !important;
+}
+
+div.stButton > button:hover {
+    background-color: white !important;
+    color: black !important;
+    transition: 0.3s ease;
+}
+
+/* RADIO BUTTONS (LOGIN/SIGNUP) */
+div[data-testid="stRadio"] > label {
+    font-family: 'Inter', sans-serif !important;
+    font-size: 12px !important;
+    letter-spacing: 2px !important;
+    color: #888 !important;
+}
+/* Sidebar refinement */
+section[data-testid="stSidebar"] {
+    background-color: #050505 !important;
+    border-right: 1px solid #1a1a1a;
+}
+
+/* Custom Card for Media Results */
+.media-card {
+    background-color: #0a0a0a;
+    border: 1px solid #1a1a1a;
+    border-radius: 20px;
+    padding: 20px;
+    margin-bottom: 15px;
+    transition: 0.3s;
+}
+
+.media-card:hover {
+    border-color: #f7b3d3; /* Glow effect with pastel pink */
+}
+
+/* Tab styling override */
+.stTabs [data-baseweb="tab-list"] {
+    gap: 30px;
+}
+
+.stTabs [data-baseweb="tab"] {
+    font-family: 'Inter', sans-serif !important;
+    font-size: 14px !important;
+    letter-spacing: 1px !important;
+    color: #666 !important;
+}
+
+.stTabs [aria-selected="true"] {
+    color: white !important;
+    border-bottom-color: white !important;
+}
+
+/* Fix for the deprecated parameter warning in your screenshot */
+img {
+    border-radius: 10px;
+}
