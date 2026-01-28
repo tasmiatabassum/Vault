@@ -1,7 +1,7 @@
 import streamlit as st
 import os
 from backend.media_service import search_external_media
-from backend.db_operations import save_user_like, get_user_likes
+from backend.db_operations import save_user_like, get_user_likes, submit_rating, get_search_gallery
 
 def dashboard():
     # --- SIDEBAR ---
@@ -42,30 +42,52 @@ def dashboard():
 
         if query:
             results = search_external_media(query, m_type)
-            st.markdown("<br>", unsafe_allow_html=True)
-            
-            if not results:
-                st.warning("No results found in the external archives.")
-            
             for item in results:
-                # Media Card UI
                 with st.container():
+                    # 1. Display Media Card (Title, Year, Genre)
                     st.markdown(f"""
                         <div class='media-card'>
-                            <p style='color: #888; font-size: 11px; margin-bottom: 4px; letter-spacing: 1px;'>{item['type'].upper()}</p>
-                            <h3 style='font-family: "Instrument Serif"; margin: 0; font-size: 24px;'>{item['title']}</h3>
+                            <p style='color: #f7b3d3; font-size: 11px; margin-bottom: 2px;'>{item.get('genre', 'General').upper()}</p>
+                            <h3 style='font-family: "Instrument Serif"; margin: 0;'>{item['title']}</h3>
                             <p style='color: #555; font-size: 14px;'>{item['year']}</p>
-                            <p style='color: #aaa; font-size: 13px; margin-top: 8px;'>{item['desc'][:150]}...</p>
                         </div>
                     """, unsafe_allow_html=True)
                     
-                    # Pill-shaped Like Button (inherits CSS from theme.css)
-                    if st.button("Add to Vault", key=f"btn_{item['external_id']}"):
-                        try:
-                            save_user_like(user['id'], item)
-                            st.toast(f"Saved {item['title']} to your vault.")
-                        except Exception as e:
-                            st.error(f"Vault error: {e}")
+                    # 2. Dynamic UI: Check if we just saved this item
+                    # We use the external_id as a unique key in session_state
+                    save_key = f"saved_{item['external_id']}"
+                    
+                    if save_key in st.session_state:
+                        # --- STATE B: Item is Saved -> Show Rating UI ---
+                        st.success("Saved to Vault!")
+                        
+                        col1, col2 = st.columns([2, 1])
+                        with col1:
+                            # Rating Dropdown
+                            new_rating = st.selectbox("Rate this:", [1, 2, 3, 4, 5], key=f"rate_val_{item['external_id']}")
+                        with col2:
+                            # Submit Button
+                            if st.button("Submit", key=f"rate_btn_{item['external_id']}"):
+                                internal_id = st.session_state[save_key] # Get the DB ID we stored
+                                res = submit_rating(user['id'], internal_id, new_rating)
+                                if res is True:
+                                    st.toast(f"Rated {new_rating} stars!")
+                                else:
+                                    st.error("Error saving rating.")
+                    else:
+                        # --- STATE A: Item not saved -> Show Add Button ---
+                        if st.button("Add to Vault", key=f"add_{item['external_id']}"):
+                            try:
+                                # 1. Save to DB and get the new Internal ID
+                                internal_id = save_user_like(user['id'], item)
+                                
+                                # 2. Store this ID in session state to "remember" it was saved
+                                st.session_state[save_key] = internal_id
+                                
+                                # 3. Rerun to update UI (hides 'Add', shows 'Rate')
+                                st.rerun()
+                            except Exception as e:
+                                st.error(f"Could not save: {e}")
 
     # --- TAB 2: MY VAULT ---
     with tab_vault:
@@ -89,6 +111,14 @@ def dashboard():
 
     # --- TAB 3: ANALYTICS ---
     with tab_analytics:
-        st.markdown("<h2 style='font-family: Instrument Serif;'>Insights</h2>", unsafe_allow_html=True)
-        st.write("Coming soon: Data-driven recommendations for your specific taste profile.")
-        # This aligns with Goal 03: Provides admin monitoring & analytics [cite: 45]
+        st.subheader("Deep Archive (SQL View)")
+        # Show your new View data in a table for the evaluators
+        gallery_data = get_search_gallery()
+        if gallery_data:
+            import pandas as pd
+            df = pd.DataFrame(gallery_data, columns=["ID", "Title", "Year", "Type", "Genres"])
+            st.dataframe(df, use_container_width=True)
+    
+
+
+    
