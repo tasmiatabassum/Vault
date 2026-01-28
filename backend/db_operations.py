@@ -164,3 +164,49 @@ def get_media_popularity(media_id):
     cur.close()
     conn.close()
     return float(score[0]) if score else 0.0
+
+def get_top_rated_genres():
+    conn = get_connection()
+    cur = conn.cursor()
+    # Much cleaner!
+    cur.execute("SELECT genre_name, avg_rating, vote_count FROM TopRatedGenresView LIMIT 5;")
+    data = cur.fetchall()
+    cur.close()
+    conn.close()
+    return [{"Genre": r[0], "Avg Rating": float(r[1]), "Votes": r[2]} for r in data]
+
+def get_user_activity_level():
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute("SELECT name, total_actions, status FROM UserActivityView LIMIT 5;")
+    data = cur.fetchall()
+    cur.close()
+    conn.close()
+    return [{"User": r[0], "Actions": r[1], "Status": r[2]} for r in data]
+
+def get_format_popularity():
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute("SELECT type_name, likes FROM FormatPopularityView;")
+    data = cur.fetchall()
+    cur.close()
+    conn.close()
+    return [{"Format": r[0], "Total Likes": r[1]} for r in data]
+
+def get_hidden_gems():
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute("SELECT title, score FROM HiddenGemsView LIMIT 5;")
+    data = cur.fetchall()
+    cur.close()
+    conn.close()
+    return [{"Title": r[0], "Score": float(r[1])} for r in data]
+
+def get_audit_stats():
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute("SELECT action, freq FROM SystemHealthView LIMIT 5;")
+    data = cur.fetchall()
+    cur.close()
+    conn.close()
+    return [{"Action": r[0], "Count": r[1]} for r in data]
