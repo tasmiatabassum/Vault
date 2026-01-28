@@ -1,10 +1,11 @@
 from backend.db_connect import get_connection
 
+# --- CORE WORKFLOWS ---
+
 def save_user_like(user_id, media_data):
     """
     Saves media, ensures the genre is linked, and records a user 'Like'.
     RETURNS: media_id (int) - Critical for subsequent rating calls.
-    Fulfills Week 8 requirement for partial workflow demo.
     """
     conn = get_connection()
     cur = conn.cursor()
@@ -15,7 +16,6 @@ def save_user_like(user_id, media_data):
         type_id = type_res[0] if type_res else 1
 
         # 2. Upsert Media using the title/year unique constraint
-        # We assume media_data['desc'] matches your API keys. Adjust if needed.
         cur.execute("""
             INSERT INTO Media (title, description, release_year, type_id)
             VALUES (%s, %s, %s, %s)
@@ -26,14 +26,10 @@ def save_user_like(user_id, media_data):
         
         media_id = cur.fetchone()[0]
 
-        # 3. LINK GENRE (The fix for the "General" issue)
-        # Fetch the genre name from the API data, defaulting to 'General' if missing
+        # 3. LINK GENRE
         genre_name = media_data.get('genre', 'General')
-        
-        # Ensure the genre exists in the Genre table
         cur.execute("INSERT INTO Genre (genre_name) VALUES (%s) ON CONFLICT DO NOTHING", (genre_name,))
         
-        # Link the media to the genre in the junction table
         cur.execute("""
             INSERT INTO MediaGenre (media_id, genre_id)
             SELECT %s, genre_id FROM Genre WHERE genre_name = %s
@@ -48,8 +44,6 @@ def save_user_like(user_id, media_data):
         """, (user_id, media_id))
         
         conn.commit()
-        
-        # --- CRITICAL RETURN FOR FRONTEND RATING ---
         return media_id 
         
     except Exception as e:
@@ -59,84 +53,9 @@ def save_user_like(user_id, media_data):
         cur.close()
         conn.close()
 
-def get_user_likes(user_id):
-    """Fetches user library via multi-table JOIN."""
-    conn = get_connection()
-    cur = conn.cursor()
-    query = """
-        SELECT m.title, m.description, m.release_year, mt.type_name
-        FROM Media m
-        JOIN UserLikes ul ON m.media_id = ul.media_id
-        JOIN MediaType mt ON m.type_id = mt.type_id
-        WHERE ul.user_id = %s
-        ORDER BY ul.liked_on DESC;
-    """
-    cur.execute(query, (user_id,))
-    rows = cur.fetchall()
-    
-    results = []
-    for row in rows:
-        results.append({
-            "title": row[0], "description": row[1],
-            "release_year": row[2], "type_name": row[3]
-        })
-    cur.close()
-    conn.close()
-    return results
-
-def submit_rating(user_id, media_id, rating):
-    """
-    Calls the SQL Procedure submit_user_rating.
-    Fulfills Nashat's role for procedural workflow and logging.
-    """
-    conn = get_connection()
-    cur = conn.cursor()
-    try:
-        # Calling the SQL PROCEDURE defined in your schema
-        cur.execute("CALL submit_user_rating(%s, %s, %s)", (user_id, media_id, rating))
-        conn.commit()
-        return True
-    except Exception as e:
-        conn.rollback()
-        return str(e)
-    finally:
-        cur.close()
-        conn.close()
-
-def get_search_gallery():
-    """
-    Fetches media with aggregated genres from the MediaSearchGallery View.
-    Fulfills Mrittika's role in complex relational data display.
-    """
-    conn = get_connection()
-    cur = conn.cursor()
-    try:
-        # Querying the View just like a table
-        cur.execute("SELECT media_id, title, release_year, type_name, genres FROM MediaSearchGallery;")
-        rows = cur.fetchall()
-        
-        # Format the result for easy display in the dataframe
-        results = []
-        for row in rows:
-            results.append({
-                "ID": row[0],
-                "Title": row[1],
-                "Year": row[2],
-                "Type": row[3],
-                "Genres": row[4]
-            })
-        return results
-    except Exception as e:
-        print(f"View Fetch Error: {e}")
-        return []
-    finally:
-        cur.close()
-        conn.close()
-
 def add_to_list_workflow(user_id, media_id, list_type):
     """
-    Calls the SQL Procedure to add an item to a specific list.
-    Fulfills Nashat's role for procedural workflow logic.
+    Calls the SQL Procedure to add an item to a specific list (watchlist/readlist/playlist).
     """
     conn = get_connection()
     cur = conn.cursor()
@@ -151,24 +70,121 @@ def add_to_list_workflow(user_id, media_id, list_type):
         cur.close()
         conn.close()
 
-def get_media_popularity(media_id):
+def submit_rating(user_id, media_id, rating):
     """
-    Calls the SQL Function to get the average score.
-    Fulfills Tasmia's role for complex data calculation.
+    Calls the SQL Procedure submit_user_rating.
     """
     conn = get_connection()
     cur = conn.cursor()
-    # Calling the SQL FUNCTION using 'SELECT'
-    cur.execute("SELECT calculate_media_score(%s)", (media_id,))
-    score = cur.fetchone()
+    try:
+        cur.execute("CALL submit_user_rating(%s, %s, %s)", (user_id, media_id, rating))
+        conn.commit()
+        return True
+    except Exception as e:
+        conn.rollback()
+        return str(e)
+    finally:
+        cur.close()
+        conn.close()
+
+# --- NEW FEATURES (WEEK 8 TAGGING & SIMILARITY) ---
+
+def add_tag_to_media(user_id, media_id, tag_name):
+    """
+    Calls the 'add_media_tag' stored procedure.
+    Demonstrates: Procedural Logic & Data Insertion across normalized tables.
+    """
+    conn = get_connection()
+    cur = conn.cursor()
+    try:
+        cur.execute("CALL add_media_tag(%s, %s, %s)", (user_id, media_id, tag_name))
+        conn.commit()
+        return True
+    except Exception as e:
+        conn.rollback()
+        return str(e)
+    finally:
+        cur.close()
+        conn.close()
+
+def get_similar_media(media_id):
+    """
+    Calls the 'get_similar_media' SQL function.
+    Demonstrates: Self-Joins and Aggregation for recommendations.
+    """
+    conn = get_connection()
+    cur = conn.cursor()
+    try:
+        cur.execute("SELECT title, type_name, shared_genres FROM get_similar_media(%s)", (media_id,))
+        rows = cur.fetchall()
+        return [{"title": r[0], "type_name": r[1], "score": r[2]} for r in rows]
+    except Exception as e:
+        return []
+    finally:
+        cur.close()
+        conn.close()
+
+# --- FETCHING DATA ---
+
+def get_user_likes(user_id):
+    """Fetches 'Favorites' (UserLikes table). UPDATED to return media_id."""
+    conn = get_connection()
+    cur = conn.cursor()
+    # Added m.media_id to the SELECT
+    query = """
+        SELECT m.media_id, m.title, m.description, m.release_year, mt.type_name
+        FROM Media m
+        JOIN UserLikes ul ON m.media_id = ul.media_id
+        JOIN MediaType mt ON m.type_id = mt.type_id
+        WHERE ul.user_id = %s
+        ORDER BY ul.liked_on DESC;
+    """
+    cur.execute(query, (user_id,))
+    rows = cur.fetchall()
     cur.close()
     conn.close()
-    return float(score[0]) if score else 0.0
+    
+    return [{"media_id": r[0], "title": r[1], "desc": r[2], "year": r[3], "type_name": r[4]} for r in rows]
+
+def get_user_list_items(user_id, list_type):
+    """Fetches items from specific lists. UPDATED to return media_id."""
+    conn = get_connection()
+    cur = conn.cursor()
+    # Added m.media_id to the SELECT
+    query = """
+        SELECT m.media_id, m.title, m.release_year, mt.type_name, m.description
+        FROM ListItem li
+        JOIN Media m ON li.media_id = m.media_id
+        JOIN MediaType mt ON m.type_id = mt.type_id
+        WHERE li.user_id = %s AND li.list_type = %s
+        ORDER BY li.added_on DESC;
+    """
+    cur.execute(query, (user_id, list_type))
+    rows = cur.fetchall()
+    cur.close()
+    conn.close()
+    
+    return [{"media_id": r[0], "title": r[1], "year": r[2], "type_name": r[3], "desc": r[4]} for r in rows]
+
+def get_search_gallery():
+    """Fetches the MediaSearchGallery SQL View."""
+    conn = get_connection()
+    cur = conn.cursor()
+    try:
+        cur.execute("SELECT media_id, title, release_year, type_name, genres FROM MediaSearchGallery;")
+        rows = cur.fetchall()
+        return [{"ID": r[0], "Title": r[1], "Year": r[2], "Type": r[3], "Genres": r[4]} for r in rows]
+    except Exception as e:
+        return []
+    finally:
+        cur.close()
+        conn.close()
+
+# --- ANALYTICS (VIEW CALLS) ---
 
 def get_top_rated_genres():
     conn = get_connection()
     cur = conn.cursor()
-    # Much cleaner!
     cur.execute("SELECT genre_name, avg_rating, vote_count FROM TopRatedGenresView LIMIT 5;")
     data = cur.fetchall()
     cur.close()
@@ -211,38 +227,12 @@ def get_audit_stats():
     conn.close()
     return [{"Action": r[0], "Count": r[1]} for r in data]
 
-
-def add_to_list_workflow(user_id, media_id, list_type):
-    """
-    Calls the SQL Procedure to add an item to a specific list (watchlist/readlist/playlist).
-    """
+def get_media_popularity(media_id):
+    """Calls the SQL Function to get the average score."""
     conn = get_connection()
     cur = conn.cursor()
-    try:
-        cur.execute("CALL add_item_to_list(%s, %s, %s)", (user_id, media_id, list_type))
-        conn.commit()
-        return True
-    except Exception as e:
-        conn.rollback()
-        return str(e)
-    finally:
-        cur.close()
-        conn.close()
-def get_user_list_items(user_id, list_type):
-    """Fetches items from specific lists (Watchlist, Readlist, etc)."""
-    conn = get_connection()
-    cur = conn.cursor()
-    query = """
-        SELECT m.title, m.release_year, mt.type_name, m.description
-        FROM ListItem li
-        JOIN Media m ON li.media_id = m.media_id
-        JOIN MediaType mt ON m.type_id = mt.type_id
-        WHERE li.user_id = %s AND li.list_type = %s
-        ORDER BY li.added_on DESC;
-    """
-    cur.execute(query, (user_id, list_type))
-    rows = cur.fetchall()
+    cur.execute("SELECT calculate_media_score(%s)", (media_id,))
+    score = cur.fetchone()
     cur.close()
     conn.close()
-    
-    return [{"title": r[0], "year": r[1], "type_name": r[2], "desc": r[3]} for r in rows]
+    return float(score[0]) if score else 0.0
