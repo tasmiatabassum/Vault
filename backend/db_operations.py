@@ -210,3 +210,39 @@ def get_audit_stats():
     cur.close()
     conn.close()
     return [{"Action": r[0], "Count": r[1]} for r in data]
+
+
+def add_to_list_workflow(user_id, media_id, list_type):
+    """
+    Calls the SQL Procedure to add an item to a specific list (watchlist/readlist/playlist).
+    """
+    conn = get_connection()
+    cur = conn.cursor()
+    try:
+        cur.execute("CALL add_item_to_list(%s, %s, %s)", (user_id, media_id, list_type))
+        conn.commit()
+        return True
+    except Exception as e:
+        conn.rollback()
+        return str(e)
+    finally:
+        cur.close()
+        conn.close()
+def get_user_list_items(user_id, list_type):
+    """Fetches items from specific lists (Watchlist, Readlist, etc)."""
+    conn = get_connection()
+    cur = conn.cursor()
+    query = """
+        SELECT m.title, m.release_year, mt.type_name, m.description
+        FROM ListItem li
+        JOIN Media m ON li.media_id = m.media_id
+        JOIN MediaType mt ON m.type_id = mt.type_id
+        WHERE li.user_id = %s AND li.list_type = %s
+        ORDER BY li.added_on DESC;
+    """
+    cur.execute(query, (user_id, list_type))
+    rows = cur.fetchall()
+    cur.close()
+    conn.close()
+    
+    return [{"title": r[0], "year": r[1], "type_name": r[2], "desc": r[3]} for r in rows]

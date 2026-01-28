@@ -4,7 +4,9 @@ import os
 from backend.media_service import search_external_media
 from backend.db_operations import (
     save_user_like, 
-    get_user_likes, 
+    get_user_likes,
+    get_user_list_items, 
+    add_to_list_workflow,
     submit_rating, 
     get_search_gallery,
     get_top_rated_genres, 
@@ -29,7 +31,6 @@ def dashboard():
     # --- MAIN CONTENT ---
     user = st.session_state.user
     
-    # Hero Greeting
     st.markdown(f"""
         <h1 style='font-family: "Instrument Serif", serif; font-size: 64px; font-weight: 400; margin-bottom: 0;'>
             Hello, {user['name']}.
@@ -37,7 +38,6 @@ def dashboard():
         <div class='rainbow-bar' style='width: 100%; height: 4px; margin: 10px 0 40px 0;'></div>
     """, unsafe_allow_html=True)
 
-    # Tabs
     tab_search, tab_vault, tab_analytics = st.tabs(["SEARCH LIBRARY", "MY VAULT", "ANALYTICS"])
 
     # --- TAB 1: SEARCH & DISCOVER ---
@@ -61,11 +61,15 @@ def dashboard():
                         </div>
                     """, unsafe_allow_html=True)
                     
-                    # Logic: Check if we just saved this item using session_state
+                    # LOGIC: Check if this item is currently being acted upon
                     save_key = f"saved_{item['external_id']}"
                     
+                    # Determine List Type based on Media Type (for the secondary button)
+                    list_map = {"movie": "watchlist", "book": "readlist", "music": "playlist"}
+                    target_list = list_map.get(item['type'], "watchlist")
+                    
                     if save_key in st.session_state:
-                        # STATE B: Item Saved -> Show Rating UI
+                        # --- STATE B: Item Saved -> Show Rating UI ---
                         st.success("Saved to Vault!")
                         
                         col1, col2 = st.columns([2, 1])
@@ -80,31 +84,67 @@ def dashboard():
                                 else:
                                     st.error(f"Error: {res}")
                     else:
-                        # STATE A: Not Saved -> Show Add Button
-                        if st.button("Add to Vault", key=f"add_{item['external_id']}"):
-                            try:
-                                internal_id = save_user_like(user['id'], item)
-                                # Store ID in session state to flip the UI to 'Rate' mode
-                                st.session_state[save_key] = internal_id
-                                st.rerun()
-                            except Exception as e:
-                                st.error(f"Could not save: {e}")
+                        # --- STATE A: Not Saved -> Show Action Buttons ---
+                        c1, c2 = st.columns([1, 1])
+                        
+                        with c1:
+                            # Primary Action: Add to Favorites (Vault)
+                            if st.button("♥ Favorites", key=f"fav_{item['external_id']}"):
+                                try:
+                                    internal_id = save_user_like(user['id'], item)
+                                    st.session_state[save_key] = internal_id # Switch to Rating Mode
+                                    st.rerun()
+                                except Exception as e:
+                                    st.error(f"Error: {e}")
+                        
+                        with c2:
+                            # Secondary Action: Add to List (Watchlist/Readlist)
+                            if st.button(f"+ {target_list.capitalize()}", key=f"list_{item['external_id']}"):
+                                try:
+                                    # 1. Save media to DB first (get ID)
+                                    # Note: We don't switch to rating mode here, we just add to list
+                                    internal_id = save_user_like(user['id'], item) 
+                                    
+                                    # 2. Add to specific list
+                                    res = add_to_list_workflow(user['id'], internal_id, target_list)
+                                    if res is True:
+                                        st.success(f"Added to {target_list}!")
+                                    else:
+                                        st.warning(f"Already in {target_list}")
+                                except Exception as e:
+                                    st.error(f"Error: {e}")
 
     # --- TAB 2: MY VAULT ---
     with tab_vault:
         st.markdown("<h2 style='font-family: Instrument Serif;'>Your Collection</h2>", unsafe_allow_html=True)
-        likes = get_user_likes(user['id'])
         
-        if not likes:
-            st.info("Your personal vault is empty. Search to add items.")
+        # Filter Selection
+        view_mode = st.radio(
+            "Filter", 
+            ["Favorites", "Watchlist", "Readlist", "Playlist"], 
+            horizontal=True,
+            label_visibility="collapsed"
+        )
+        st.markdown("<br>", unsafe_allow_html=True)
+
+        # Fetch Data based on Filter
+        if view_mode == "Favorites":
+            items = get_user_likes(user['id'])
         else:
-            for item in likes:
+            items = get_user_list_items(user['id'], view_mode.lower())
+        
+        # Display Data
+        if not items:
+            st.info(f"Your {view_mode} is empty.")
+        else:
+            for item in items:
+                m_type = item.get('type_name', 'Media')
                 st.markdown(f"""
                     <div style='border-bottom: 1px solid #1a1a1a; padding: 20px 0; display: flex; align-items: center;'>
-                        <span style='color: #f7b3d3; margin-right: 15px;'>✦</span> 
+                        <span style='color: #f7b3d3; margin-right: 15px; font-size: 20px;'>•</span> 
                         <div>
                             <span style='font-family: "Inter"; font-weight: 500; font-size: 18px;'>{item['title']}</span><br>
-                            <span style='color: #666; font-size: 12px; letter-spacing: 1px;'>{item['type_name'].upper()} &nbsp; | &nbsp; {item['release_year']}</span>
+                            <span style='color: #666; font-size: 12px; letter-spacing: 1px;'>{m_type.upper()} | {item.get('year', 'N/A')}</span>
                         </div>
                     </div>
                 """, unsafe_allow_html=True)
@@ -113,7 +153,7 @@ def dashboard():
     with tab_analytics:
         st.markdown("<h2 style='font-family: Instrument Serif;'>Vault Analytics</h2>", unsafe_allow_html=True)
         
-        # Row 1: Top Genres & Format Popularity
+        # Row 1
         col1, col2 = st.columns(2)
         with col1:
             st.subheader("★ Top Rated Genres")
@@ -121,45 +161,41 @@ def dashboard():
             if data:
                 st.dataframe(pd.DataFrame(data), hide_index=True, use_container_width=True)
             else:
-                st.caption("Not enough rating data yet.")
+                st.caption("Not enough data.")
 
         with col2:
             st.subheader("📊 Format Popularity")
             data = get_format_popularity()
             if data:
-                # Simple Bar Chart for counts
                 df_format = pd.DataFrame(data).set_index("Format")
                 st.bar_chart(df_format)
             else:
-                st.caption("No likes recorded yet.")
+                st.caption("No data.")
 
-        # Row 2: User Activity & Hidden Gems
+        # Row 2
         st.markdown("<br>", unsafe_allow_html=True)
         col3, col4 = st.columns(2)
         with col3:
             st.subheader("👥 User Leaderboard")
-            st.caption("Categorized via SQL CASE Statements")
             data = get_user_activity_level()
             if data:
                  st.dataframe(pd.DataFrame(data), hide_index=True, use_container_width=True)
 
         with col4:
             st.subheader("💎 Hidden Gems")
-            st.caption("High rated (Avg > 4.0)")
             data = get_hidden_gems()
             if data:
                 st.dataframe(pd.DataFrame(data), hide_index=True, use_container_width=True)
 
-        # Row 3: Deep Archive (Existing View)
+        # Row 3: Deep Archive
         st.markdown("<br>", unsafe_allow_html=True)
         st.subheader("🗄️ Deep Archive (SQL View)")
         gallery_data = get_search_gallery()
         if gallery_data:
             st.dataframe(pd.DataFrame(gallery_data), hide_index=True, use_container_width=True)
             
-        # Row 4: System Health (Audit Log)
+        # Row 4: Audit Logs
         with st.expander("View System Audit Logs"):
-            st.caption("Live feed of database triggers")
             data = get_audit_stats()
             if data:
                 st.table(pd.DataFrame(data))
