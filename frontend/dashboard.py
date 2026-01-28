@@ -13,7 +13,9 @@ from backend.db_operations import (
     get_user_activity_level, 
     get_format_popularity, 
     get_hidden_gems, 
-    get_audit_stats
+    get_audit_stats,
+    add_tag_to_media,    # <--- NEW IMPORT
+    get_similar_media    # <--- NEW IMPORT
 )
 
 def dashboard():
@@ -61,10 +63,9 @@ def dashboard():
                         </div>
                     """, unsafe_allow_html=True)
                     
-                    # LOGIC: Check if this item is currently being acted upon
                     save_key = f"saved_{item['external_id']}"
                     
-                    # Determine List Type based on Media Type (for the secondary button)
+                    # Determine List Type based on Media Type
                     list_map = {"movie": "watchlist", "book": "readlist", "music": "playlist"}
                     target_list = list_map.get(item['type'], "watchlist")
                     
@@ -81,6 +82,7 @@ def dashboard():
                                 res = submit_rating(user['id'], internal_id, new_rating)
                                 if res is True:
                                     st.toast(f"Rated {new_rating} stars!")
+                                    # Note: Your SQL Trigger 'cleanup_watchlist' automatically handles cleanup!
                                 else:
                                     st.error(f"Error: {res}")
                     else:
@@ -88,24 +90,21 @@ def dashboard():
                         c1, c2 = st.columns([1, 1])
                         
                         with c1:
-                            # Primary Action: Add to Favorites (Vault)
+                            # Primary: Add to Favorites
                             if st.button("♥ Favorites", key=f"fav_{item['external_id']}"):
                                 try:
                                     internal_id = save_user_like(user['id'], item)
-                                    st.session_state[save_key] = internal_id # Switch to Rating Mode
+                                    st.session_state[save_key] = internal_id
                                     st.rerun()
                                 except Exception as e:
                                     st.error(f"Error: {e}")
                         
                         with c2:
-                            # Secondary Action: Add to List (Watchlist/Readlist)
+                            # Secondary: Add to List (Watchlist/Readlist)
                             if st.button(f"+ {target_list.capitalize()}", key=f"list_{item['external_id']}"):
                                 try:
-                                    # 1. Save media to DB first (get ID)
-                                    # Note: We don't switch to rating mode here, we just add to list
+                                    # Save to DB first to get ID, then add to specific list
                                     internal_id = save_user_like(user['id'], item) 
-                                    
-                                    # 2. Add to specific list
                                     res = add_to_list_workflow(user['id'], internal_id, target_list)
                                     if res is True:
                                         st.success(f"Added to {target_list}!")
@@ -133,7 +132,6 @@ def dashboard():
         else:
             items = get_user_list_items(user['id'], view_mode.lower())
         
-        # Display Data
         if not items:
             st.info(f"Your {view_mode} is empty.")
         else:
@@ -148,6 +146,34 @@ def dashboard():
                         </div>
                     </div>
                 """, unsafe_allow_html=True)
+
+                # --- NEW FEATURE: ACTIONS & DETAILS EXPANDER ---
+                # This exposes your advanced Tagging Procedure and Similarity Function
+                with st.expander(f"Actions & Details for {item['title']}"):
+                    t_col1, t_col2 = st.columns([1, 1])
+                    
+                    # 1. Custom Tagging (Calls Stored Procedure)
+                    with t_col1:
+                        st.caption("Add a custom tag:")
+                        new_tag = st.text_input("Tag Name", label_visibility="collapsed", key=f"tag_in_{item['media_id']}", placeholder="e.g. Dystopian")
+                        if st.button("Add Tag", key=f"tag_btn_{item['media_id']}"):
+                            res = add_tag_to_media(user['id'], item['media_id'], new_tag)
+                            if res is True:
+                                st.success(f"Tagged as '{new_tag}'!")
+                            else:
+                                st.error("Error adding tag.")
+
+                    # 2. Similarity Search (Calls SQL Function with Self-Join)
+                    with t_col2:
+                        st.caption("More like this:")
+                        # Only run this if we have a media_id
+                        if 'media_id' in item:
+                            similar_items = get_similar_media(item['media_id'])
+                            if similar_items:
+                                for s in similar_items:
+                                    st.markdown(f"**{s['title']}** <span style='color:#666'>({s['type_name']})</span>", unsafe_allow_html=True)
+                            else:
+                                st.write("No similar items found yet.")
 
     # --- TAB 3: ANALYTICS ---
     with tab_analytics:
