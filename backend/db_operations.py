@@ -1,42 +1,54 @@
 from backend.db_connect import get_connection
 
+# --- INTERNAL HELPERS ---
+
+def ensure_media_exists(cur, media_data):
+    """
+    Internal helper to ensure media, genre, and type records exist in the DB.
+    Does NOT record a user action (like or list entry).
+    """
+    # 1. Ensure the Media Type exists (movie, book, or music)
+    cur.execute("SELECT type_id FROM MediaType WHERE type_name = %s", (media_data['type'],))
+    type_res = cur.fetchone()
+    type_id = type_res[0] if type_res else 1
+
+    # 2. Upsert Media using the title/year unique constraint
+    cur.execute("""
+        INSERT INTO Media (title, description, release_year, type_id)
+        VALUES (%s, %s, %s, %s)
+        ON CONFLICT (title, release_year) 
+        DO UPDATE SET description = EXCLUDED.description
+        RETURNING media_id;
+    """, (media_data['title'], media_data['desc'], int(media_data['year']), type_id))
+    
+    media_id = cur.fetchone()[0]
+
+    # 3. Ensure Genre exists and Link it
+    genre_name = media_data.get('genre', 'General')
+    cur.execute("INSERT INTO Genre (genre_name) VALUES (%s) ON CONFLICT DO NOTHING", (genre_name,))
+    
+    cur.execute("""
+        INSERT INTO MediaGenre (media_id, genre_id)
+        SELECT %s, genre_id FROM Genre WHERE genre_name = %s
+        ON CONFLICT DO NOTHING;
+    """, (media_id, genre_name))
+
+    return media_id
+
 # --- CORE WORKFLOWS ---
 
 def save_user_like(user_id, media_data):
     """
-    Saves media, ensures the genre is linked, and records a user 'Like'.
-    RETURNS: media_id (int) - Critical for subsequent rating calls.
+    Saves media and records a user 'Like' (Favorites).
+    Returns media_id for rating workflow.
     """
     conn = get_connection()
     cur = conn.cursor()
     try:
-        # 1. Ensure the Media Type exists (movie, book, or music)
-        cur.execute("SELECT type_id FROM MediaType WHERE type_name = %s", (media_data['type'],))
-        type_res = cur.fetchone()
-        type_id = type_res[0] if type_res else 1
+        # Step 1: Ensure media is in the DB
+        media_id = ensure_media_exists(cur, media_data)
 
-        # 2. Upsert Media using the title/year unique constraint
-        cur.execute("""
-            INSERT INTO Media (title, description, release_year, type_id)
-            VALUES (%s, %s, %s, %s)
-            ON CONFLICT (title, release_year) 
-            DO UPDATE SET description = EXCLUDED.description
-            RETURNING media_id;
-        """, (media_data['title'], media_data['desc'], int(media_data['year']), type_id))
-        
-        media_id = cur.fetchone()[0]
-
-        # 3. LINK GENRE
-        genre_name = media_data.get('genre', 'General')
-        cur.execute("INSERT INTO Genre (genre_name) VALUES (%s) ON CONFLICT DO NOTHING", (genre_name,))
-        
-        cur.execute("""
-            INSERT INTO MediaGenre (media_id, genre_id)
-            SELECT %s, genre_id FROM Genre WHERE genre_name = %s
-            ON CONFLICT DO NOTHING;
-        """, (media_id, genre_name))
-
-        # 4. Record the Like - This triggers the 'after_media_like' SQL Trigger
+        # Step 2: Specifically record the Like
         cur.execute("""
             INSERT INTO UserLikes (user_id, media_id)
             VALUES (%s, %s)
@@ -53,27 +65,31 @@ def save_user_like(user_id, media_data):
         cur.close()
         conn.close()
 
-def add_to_list_workflow(user_id, media_id, list_type):
+def add_to_list_workflow(user_id, media_data, list_type):
     """
-    Calls the SQL Procedure to add an item to a specific list (watchlist/readlist/playlist).
+    Ensures media exists and then calls SQL Procedure to add to a specific list.
+    Handles type constraints (e.g., only books in Readlist).
     """
     conn = get_connection()
     cur = conn.cursor()
     try:
+        # Step 1: Ensure media is in the DB
+        media_id = ensure_media_exists(cur, media_data)
+
+        # Step 2: Call the SQL Procedure for list management
         cur.execute("CALL add_item_to_list(%s, %s, %s)", (user_id, media_id, list_type))
         conn.commit()
         return True
     except Exception as e:
         conn.rollback()
+        # Returns the error message (including the custom SQL RAISE EXCEPTION messages)
         return str(e)
     finally:
         cur.close()
         conn.close()
 
 def submit_rating(user_id, media_id, rating):
-    """
-    Calls the SQL Procedure submit_user_rating.
-    """
+    """Calls the SQL Procedure submit_user_rating."""
     conn = get_connection()
     cur = conn.cursor()
     try:
@@ -90,10 +106,7 @@ def submit_rating(user_id, media_id, rating):
 # --- NEW FEATURES (WEEK 8 TAGGING & SIMILARITY) ---
 
 def add_tag_to_media(user_id, media_id, tag_name):
-    """
-    Calls the 'add_media_tag' stored procedure.
-    Demonstrates: Procedural Logic & Data Insertion across normalized tables.
-    """
+    """Calls the 'add_media_tag' stored procedure."""
     conn = get_connection()
     cur = conn.cursor()
     try:
@@ -108,10 +121,7 @@ def add_tag_to_media(user_id, media_id, tag_name):
         conn.close()
 
 def get_similar_media(media_id):
-    """
-    Calls the 'get_similar_media' SQL function.
-    Demonstrates: Self-Joins and Aggregation for recommendations.
-    """
+    """Calls the 'get_similar_media' SQL function for recommendations."""
     conn = get_connection()
     cur = conn.cursor()
     try:
@@ -127,10 +137,9 @@ def get_similar_media(media_id):
 # --- FETCHING DATA ---
 
 def get_user_likes(user_id):
-    """Fetches 'Favorites' (UserLikes table). UPDATED to return media_id."""
+    """Fetches 'Favorites' (UserLikes table). Includes media_id."""
     conn = get_connection()
     cur = conn.cursor()
-    # Added m.media_id to the SELECT
     query = """
         SELECT m.media_id, m.title, m.description, m.release_year, mt.type_name
         FROM Media m
@@ -147,10 +156,9 @@ def get_user_likes(user_id):
     return [{"media_id": r[0], "title": r[1], "desc": r[2], "year": r[3], "type_name": r[4]} for r in rows]
 
 def get_user_list_items(user_id, list_type):
-    """Fetches items from specific lists. UPDATED to return media_id."""
+    """Fetches items from specific lists (Watchlist, Readlist, etc). Includes media_id."""
     conn = get_connection()
     cur = conn.cursor()
-    # Added m.media_id to the SELECT
     query = """
         SELECT m.media_id, m.title, m.release_year, mt.type_name, m.description
         FROM ListItem li

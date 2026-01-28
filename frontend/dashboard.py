@@ -14,8 +14,8 @@ from backend.db_operations import (
     get_format_popularity, 
     get_hidden_gems, 
     get_audit_stats,
-    add_tag_to_media,    # <--- NEW IMPORT
-    get_similar_media    # <--- NEW IMPORT
+    add_tag_to_media,
+    get_similar_media
 )
 
 def dashboard():
@@ -71,7 +71,7 @@ def dashboard():
                     
                     if save_key in st.session_state:
                         # --- STATE B: Item Saved -> Show Rating UI ---
-                        st.success("Saved to Vault!")
+                        st.success("Saved to Favorites!")
                         
                         col1, col2 = st.columns([2, 1])
                         with col1:
@@ -82,7 +82,6 @@ def dashboard():
                                 res = submit_rating(user['id'], internal_id, new_rating)
                                 if res is True:
                                     st.toast(f"Rated {new_rating} stars!")
-                                    # Note: Your SQL Trigger 'cleanup_watchlist' automatically handles cleanup!
                                 else:
                                     st.error(f"Error: {res}")
                     else:
@@ -90,9 +89,10 @@ def dashboard():
                         c1, c2 = st.columns([1, 1])
                         
                         with c1:
-                            # Primary: Add to Favorites
+                            # Primary Action: Add to Favorites (The 'Like' workflow)
                             if st.button("♥ Favorites", key=f"fav_{item['external_id']}"):
                                 try:
+                                    # This now only adds to Favorites table
                                     internal_id = save_user_like(user['id'], item)
                                     st.session_state[save_key] = internal_id
                                     st.rerun()
@@ -100,18 +100,16 @@ def dashboard():
                                     st.error(f"Error: {e}")
                         
                         with c2:
-                            # Secondary: Add to List (Watchlist/Readlist)
+                            # Secondary Action: Add to specific List (Watchlist/Readlist/Playlist)
                             if st.button(f"+ {target_list.capitalize()}", key=f"list_{item['external_id']}"):
-                                try:
-                                    # Save to DB first to get ID, then add to specific list
-                                    internal_id = save_user_like(user['id'], item) 
-                                    res = add_to_list_workflow(user['id'], internal_id, target_list)
-                                    if res is True:
-                                        st.success(f"Added to {target_list}!")
-                                    else:
-                                        st.warning(f"Already in {target_list}")
-                                except Exception as e:
-                                    st.error(f"Error: {e}")
+                                # Logic change: Pass item directly to workflow
+                                # This avoids the 'save_user_like' side effect
+                                res = add_to_list_workflow(user['id'], item, target_list)
+                                if res is True:
+                                    st.success(f"Added to {target_list}!")
+                                else:
+                                    # Displays the warning for duplicates or the error for type mismatch
+                                    st.error(res)
 
     # --- TAB 2: MY VAULT ---
     with tab_vault:
@@ -147,12 +145,11 @@ def dashboard():
                     </div>
                 """, unsafe_allow_html=True)
 
-                # --- NEW FEATURE: ACTIONS & DETAILS EXPANDER ---
-                # This exposes your advanced Tagging Procedure and Similarity Function
+                # --- ACTIONS & DETAILS EXPANDER ---
                 with st.expander(f"Actions & Details for {item['title']}"):
                     t_col1, t_col2 = st.columns([1, 1])
                     
-                    # 1. Custom Tagging (Calls Stored Procedure)
+                    # 1. Custom Tagging (Stored Procedure)
                     with t_col1:
                         st.caption("Add a custom tag:")
                         new_tag = st.text_input("Tag Name", label_visibility="collapsed", key=f"tag_in_{item['media_id']}", placeholder="e.g. Dystopian")
@@ -163,10 +160,9 @@ def dashboard():
                             else:
                                 st.error("Error adding tag.")
 
-                    # 2. Similarity Search (Calls SQL Function with Self-Join)
+                    # 2. Similarity Search (Self-Join Function)
                     with t_col2:
                         st.caption("More like this:")
-                        # Only run this if we have a media_id
                         if 'media_id' in item:
                             similar_items = get_similar_media(item['media_id'])
                             if similar_items:
@@ -179,7 +175,6 @@ def dashboard():
     with tab_analytics:
         st.markdown("<h2 style='font-family: Instrument Serif;'>Vault Analytics</h2>", unsafe_allow_html=True)
         
-        # Row 1
         col1, col2 = st.columns(2)
         with col1:
             st.subheader("★ Top Rated Genres")
@@ -198,7 +193,6 @@ def dashboard():
             else:
                 st.caption("No data.")
 
-        # Row 2
         st.markdown("<br>", unsafe_allow_html=True)
         col3, col4 = st.columns(2)
         with col3:
@@ -213,14 +207,12 @@ def dashboard():
             if data:
                 st.dataframe(pd.DataFrame(data), hide_index=True, use_container_width=True)
 
-        # Row 3: Deep Archive
         st.markdown("<br>", unsafe_allow_html=True)
         st.subheader("🗄️ Deep Archive (SQL View)")
         gallery_data = get_search_gallery()
         if gallery_data:
             st.dataframe(pd.DataFrame(gallery_data), hide_index=True, use_container_width=True)
             
-        # Row 4: Audit Logs
         with st.expander("View System Audit Logs"):
             data = get_audit_stats()
             if data:
