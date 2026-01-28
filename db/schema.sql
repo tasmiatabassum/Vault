@@ -37,6 +37,15 @@ CREATE TABLE AuditLog (
     action_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE TABLE ListItem (
+    list_id SERIAL PRIMARY KEY,
+    user_id INT REFERENCES Users(user_id),
+    media_id INT REFERENCES Media(media_id),
+    list_type VARCHAR(20) CHECK (list_type IN ('watchlist', 'readlist', 'playlist')),
+    added_on TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT unique_list_item UNIQUE (user_id, media_id, list_type)
+);
+
 -- --- 1. TRIGGER (Nashat's Role) ---
 -- Automatically logs a record whenever a user 'Likes' media
 CREATE OR REPLACE FUNCTION log_user_like()
