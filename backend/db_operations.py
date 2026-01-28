@@ -125,10 +125,12 @@ def get_similar_media(media_id):
     conn = get_connection()
     cur = conn.cursor()
     try:
-        cur.execute("SELECT title, type_name, shared_genres FROM get_similar_media(%s)", (media_id,))
+        # UPDATED: Select 'similarity_score' instead of 'shared_genres'
+        cur.execute("SELECT title, type_name, similarity_score FROM get_similar_media(%s)", (media_id,))
         rows = cur.fetchall()
         return [{"title": r[0], "type_name": r[1], "score": r[2]} for r in rows]
     except Exception as e:
+        print(f"Error in similarity: {e}") # Debug print
         return []
     finally:
         cur.close()
