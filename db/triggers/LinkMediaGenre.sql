@@ -22,3 +22,68 @@ $$ LANGUAGE plpgsql;
 CREATE TRIGGER after_media_insert
 AFTER INSERT ON Media
 FOR EACH ROW EXECUTE FUNCTION link_media_to_genre();
+-- 1. Enhanced Like Trigger (calls recommendations)
+CREATE OR REPLACE FUNCTION log_user_like()
+RETURNS TRIGGER AS $$
+BEGIN
+    INSERT INTO AuditLog (user_id, media_id, action)
+    VALUES (NEW.user_id, NEW.media_id, 'User liked a media item');
+
+    -- Generate recommendations automatically
+    CALL generate_recommendations(NEW.user_id);
+
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS after_media_like ON UserLikes;
+CREATE TRIGGER after_media_like
+AFTER INSERT ON UserLikes
+FOR EACH ROW EXECUTE FUNCTION log_user_like();
+
+-- 2. Rating Validation Trigger (NEW)
+CREATE OR REPLACE FUNCTION validate_rating()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF NEW.rating_value < 1 OR NEW.rating_value > 5 THEN
+        RAISE EXCEPTION 'Rating must be between 1 and 5, got %', NEW.rating_value;
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER before_rating_insert
+BEFORE INSERT ON UserRatings
+FOR EACH ROW EXECUTE FUNCTION validate_rating();
+
+-- 3. Rating Audit Trigger (NEW)
+CREATE OR REPLACE FUNCTION log_user_rating()
+RETURNS TRIGGER AS $$
+BEGIN
+    INSERT INTO AuditLog (user_id, media_id, action)
+    VALUES (NEW.user_id, NEW.media_id, 'User rated ' || NEW.rating_value || ' stars');
+
+    -- Regenerate recommendations based on new rating
+    CALL generate_recommendations(NEW.user_id);
+
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER after_rating_insert
+AFTER INSERT OR UPDATE ON UserRatings
+FOR EACH ROW EXECUTE FUNCTION log_user_rating();
+
+-- 4. ListItem Audit Trigger (NEW)
+CREATE OR REPLACE FUNCTION log_list_addition()
+RETURNS TRIGGER AS $$
+BEGIN
+    INSERT INTO AuditLog (user_id, media_id, action)
+    VALUES (NEW.user_id, NEW.media_id, 'Added to ' || NEW.list_type);
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER after_list_insert
+AFTER INSERT ON ListItem
+FOR EACH ROW EXECUTE FUNCTION log_list_addition();

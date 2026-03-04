@@ -246,3 +246,85 @@ def get_media_popularity(media_id):
     cur.close()
     conn.close()
     return float(score[0]) if score else 0.0
+
+
+def get_user_recommendations(user_id):
+    """Fetch personalized recommendations."""
+    conn = get_connection()
+    cur = conn.cursor()
+    query = """
+            SELECT m.media_id, \
+                   m.title, \
+                   m.description, \
+                   m.release_year,
+                   mt.type_name, \
+                   r.score,
+                   COALESCE(STRING_AGG(DISTINCT g.genre_name, ', '), 'General') as genres
+            FROM Recommendations r
+                     JOIN Media m ON r.media_id = m.media_id
+                     JOIN MediaType mt ON m.type_id = mt.type_id
+                     LEFT JOIN MediaGenre mg ON m.media_id = mg.media_id
+                     LEFT JOIN Genre g ON mg.genre_id = g.genre_id
+            WHERE r.user_id = %s
+            GROUP BY m.media_id, m.title, m.description, m.release_year, mt.type_name, r.score
+            ORDER BY r.score DESC LIMIT 10; \
+            """
+    cur.execute(query, (user_id,))
+    rows = cur.fetchall()
+    cur.close()
+    conn.close()
+
+    return [{
+        "media_id": r[0], "title": r[1], "desc": r[2],
+        "year": r[3], "type_name": r[4], "score": float(r[5]), "genres": r[6]
+    } for r in rows]
+
+
+def get_user_theme_weights(user_id):
+    """Get user's genre/tag preferences."""
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute("SELECT * FROM compute_user_theme_weights(%s)", (user_id,))
+    rows = cur.fetchall()
+    cur.close()
+    conn.close()
+    return [{"theme": r[0], "weight": int(r[1]), "category": r[2]} for r in rows]
+
+
+def refresh_all_recommendations():
+    """Admin function to regenerate all recommendations."""
+    conn = get_connection()
+    cur = conn.cursor()
+    try:
+        cur.execute("CALL refresh_all_recommendations()")
+        conn.commit()
+        return True
+    except Exception as e:
+        conn.rollback()
+        return str(e)
+    finally:
+        cur.close()
+        conn.close()
+
+
+def get_advanced_analytics(view_name):
+    """Fetch data from advanced analytical views."""
+    conn = get_connection()
+    cur = conn.cursor()
+
+    valid_views = {
+        'distribution': 'MediaDistributionAnalysis',
+        'activity_cube': 'UserActivityCube',
+        'genre_hierarchy': 'GenreHierarchyStats'
+    }
+
+    if view_name not in valid_views:
+        return []
+
+    cur.execute(f"SELECT * FROM {valid_views[view_name]} LIMIT 50")
+    rows = cur.fetchall()
+    cur.close()
+    conn.close()
+
+    # Return as list of dicts
+    return [dict(zip([desc[0] for desc in cur.description], row)) for row in rows]

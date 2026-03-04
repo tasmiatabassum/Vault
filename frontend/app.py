@@ -12,6 +12,7 @@ if PROJECT_ROOT not in sys.path:
 from homepage import landing_page
 from login import login_page
 from dashboard import dashboard
+from admin_panel import admin_panel
 
 # ---------------- PAGE ROUTING ---------------------
 
@@ -33,5 +34,11 @@ elif st.session_state.page == "auth":
 
 elif st.session_state.page == "dashboard":
     dashboard()
+
+elif st.session_state.page == "admin":
+    if "user" in st.session_state and st.session_state.user['role'] == 'admin':
+        admin_panel()
+    else:
+        st.error("Access denied")
 
 # ---------------------------------------------------
