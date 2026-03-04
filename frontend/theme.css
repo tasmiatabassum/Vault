@@ -1,0 +1,196 @@
+/* ── Google Fonts ─────────────────────────────────────────────────── */
+@import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital,wght@0,400;1,400&family=Inter:wght@300;400;500;600&display=swap');
+
+/* ── Global ──────────────────────────────────────────────────────── */
+html, body, [class*="css"] {
+    background-color: #000000 !important;
+    color: #ffffff !important;
+    font-family: 'Inter', sans-serif !important;
+}
+
+/* ── Rainbow bar ─────────────────────────────────────────────────── */
+.rainbow-bar {
+    height: 3px;
+    width: 100%;
+    background: linear-gradient(90deg,
+        #cccccc 0%,   #cccccc 14%,
+        #f7b3d3 14%,  #f7b3d3 28%,
+        #ffd3a3 28%,  #ffd3a3 42%,
+        #fff8a6 42%,  #fff8a6 57%,
+        #c6f7d4 57%,  #c6f7d4 71%,
+        #b9e6ff 71%,  #b9e6ff 85%,
+        #d6c7ff 85%,  #d6c7ff 100%
+    );
+    border-radius: 4px;
+    margin: 12px 0 32px 0;
+}
+
+/* ── Sidebar ─────────────────────────────────────────────────────── */
+section[data-testid="stSidebar"] {
+    background-color: #050505 !important;
+    border-right: 1px solid #111 !important;
+}
+
+/* ── Buttons ─────────────────────────────────────────────────────── */
+div.stButton > button {
+    background-color: transparent !important;
+    color: #ffffff !important;
+    border: 1px solid #333 !important;
+    border-radius: 8px !important;
+    padding: 8px 20px !important;
+    font-family: 'Inter', sans-serif !important;
+    font-size: 13px !important;
+    font-weight: 400 !important;
+    letter-spacing: 0.3px !important;
+    transition: all 0.2s ease !important;
+    white-space: nowrap !important;
+}
+
+div.stButton > button:hover {
+    background-color: #ffffff !important;
+    color: #000000 !important;
+    border-color: #ffffff !important;
+}
+
+div.stButton > button:active {
+    transform: scale(0.98) !important;
+}
+
+/* ── Text inputs ─────────────────────────────────────────────────── */
+.stTextInput > div > div > input {
+    background-color: #0a0a0a !important;
+    color: #ffffff !important;
+    border: 1px solid #222 !important;
+    border-radius: 8px !important;
+    padding: 10px 14px !important;
+    font-family: 'Inter', sans-serif !important;
+    font-size: 14px !important;
+    transition: border-color 0.2s ease !important;
+}
+
+.stTextInput > div > div > input:focus {
+    border-color: #444 !important;
+    outline: none !important;
+}
+
+.stTextInput > div > div > input::placeholder {
+    color: #444 !important;
+}
+
+/* ── Selectbox ───────────────────────────────────────────────────── */
+div[data-baseweb="select"] > div {
+    background-color: #0a0a0a !important;
+    border: 1px solid #222 !important;
+    border-radius: 8px !important;
+    color: #ffffff !important;
+}
+
+/* ── Tabs ────────────────────────────────────────────────────────── */
+.stTabs [data-baseweb="tab-list"] {
+    gap: 0;
+    border-bottom: 1px solid #111;
+    background: transparent;
+}
+
+.stTabs [data-baseweb="tab"] {
+    font-family: 'Inter', sans-serif !important;
+    font-size: 11px !important;
+    font-weight: 600 !important;
+    letter-spacing: 2px !important;
+    color: #444 !important;
+    padding: 12px 20px !important;
+    border-bottom: 2px solid transparent !important;
+    background: transparent !important;
+}
+
+.stTabs [aria-selected="true"] {
+    color: #ffffff !important;
+    border-bottom: 2px solid #ffffff !important;
+}
+
+/* ── Media card ──────────────────────────────────────────────────── */
+.media-card {
+    background-color: #080808;
+    border: 1px solid #161616;
+    border-radius: 12px;
+    padding: 18px 20px;
+    margin-bottom: 12px;
+    transition: border-color 0.2s ease, background-color 0.2s ease;
+}
+
+.media-card:hover {
+    border-color: #2a2a2a;
+    background-color: #0d0d0d;
+}
+
+/* ── Radio buttons ───────────────────────────────────────────────── */
+div[data-testid="stRadio"] label {
+    font-family: 'Inter', sans-serif !important;
+    font-size: 12px !important;
+    letter-spacing: 1.5px !important;
+    color: #666 !important;
+}
+
+div[data-testid="stRadio"] label:has(input:checked) {
+    color: #ffffff !important;
+}
+
+/* ── Expander ────────────────────────────────────────────────────── */
+details {
+    background-color: #080808 !important;
+    border: 1px solid #161616 !important;
+    border-radius: 8px !important;
+    margin-bottom: 4px !important;
+}
+
+details summary {
+    font-size: 13px !important;
+    color: #666 !important;
+    padding: 10px 14px !important;
+}
+
+details summary:hover {
+    color: #aaa !important;
+}
+
+/* ── Metrics ─────────────────────────────────────────────────────── */
+div[data-testid="metric-container"] {
+    background: #080808;
+    border: 1px solid #161616;
+    border-radius: 8px;
+    padding: 12px 16px;
+}
+
+/* ── Dataframe ───────────────────────────────────────────────────── */
+.stDataFrame {
+    border: 1px solid #161616 !important;
+    border-radius: 8px !important;
+    overflow: hidden !important;
+}
+
+/* ── Info / success / warning ────────────────────────────────────── */
+div[data-testid="stAlert"] {
+    border-radius: 8px !important;
+    border: none !important;
+}
+
+/* ── Slider ──────────────────────────────────────────────────────── */
+div[data-testid="stSlider"] > div {
+    color: #ffffff !important;
+}
+
+/* ── Caption / small text ────────────────────────────────────────── */
+.stCaption, small {
+    color: #555 !important;
+    font-size: 11px !important;
+    letter-spacing: 1px !important;
+}
+
+/* ── Scrollbar ───────────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: #000; }
+::-webkit-scrollbar-thumb { background: #222; border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: #333; }
+
+/* ── Images ──────────────────────────────────────────────────────── */
+img { border-radius: 8px; }
