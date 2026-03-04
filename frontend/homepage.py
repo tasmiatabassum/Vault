@@ -1,5 +1,6 @@
 import streamlit as st
 
+
 def landing_page():
     # Load custom CSS
     with open("frontend/theme.css") as f:
@@ -7,7 +8,7 @@ def landing_page():
 
     # Main Container for centering
     st.markdown("<br><br><br>", unsafe_allow_html=True)
-    
+
     # --- TITLE ---
     st.markdown("""
         <div style='text-align:center;'>

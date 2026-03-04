@@ -16,7 +16,7 @@ IMPORTANT_BOOK_GENRES = [
     "Fantasy", "Science Fiction", "Sci-Fi", "Dystopian", "Cyberpunk",
     "Horror", "Thriller", "Suspense", "Mystery", "Crime", "Detective",
     "Romance", "Historical Fiction", "Adventure", "Western",
-    "Biography", "Autobiography", "Memoir", "History", 
+    "Biography", "Autobiography", "Memoir", "History",
     "Psychology", "Philosophy", "Science", "Technology", "Programming",
     "Business", "Economics", "Finance", "Self-Help", "Health", "Cooking",
     "Art", "Music", "Poetry", "Comics", "Graphic Novels", "Manga",
@@ -35,6 +35,7 @@ TITLE_KEYWORD_MAP = {
     "jobs": "Biography", "musk": "Biography", "obama": "Biography", "life": "Biography"
 }
 
+
 def search_external_media(query, media_type):
     results = []
     headers = {"User-Agent": "VaultApp/1.0 (Student Project)"}
@@ -45,11 +46,10 @@ def search_external_media(query, media_type):
             url = "https://api.themoviedb.org/3/search/movie"
             params = {"api_key": TMDB_API_KEY, "query": query}
             response = requests.get(url, params=params, headers=headers).json()
-            
+
             for item in response.get('results', [])[:5]:
                 g_ids = item.get('genre_ids', [])
                 genre_val = TMDB_GENRE_MAP.get(g_ids[0], "Movie") if g_ids else "Movie"
-
                 results.append({
                     "external_id": str(item['id']),
                     "title": item['title'],
@@ -58,25 +58,21 @@ def search_external_media(query, media_type):
                     "type": "movie",
                     "genre": genre_val
                 })
-                
+
         # --- BOOKS (OPEN LIBRARY) ---
         elif media_type == "book":
             url = "https://openlibrary.org/search.json"
-            # FIX: We strictly ask for 'subject' field to prevent empty results
             params = {
-                "q": query, 
-                "limit": 5, 
+                "q": query,
+                "limit": 5,
                 "fields": "key,title,author_name,first_publish_year,subject"
             }
             response = requests.get(url, params=params, headers=headers).json()
-            
+
             for item in response.get('docs', []):
-                genre_val = "Literature" # Default
-                
-                # A. Try API Subjects
+                genre_val = "Literature"
                 subjects = item.get('subject', [])
-                
-                # Smart Filter: Check priority list
+
                 found_specific = False
                 if subjects:
                     for priority in IMPORTANT_BOOK_GENRES:
@@ -88,9 +84,8 @@ def search_external_media(query, media_type):
                         if found_specific:
                             break
                     if not found_specific:
-                        genre_val = subjects[0] # Take first available if no priority match
+                        genre_val = subjects[0]
 
-                # B. Emergency Fallback: Check Title Keywords if API returned nothing
                 if not subjects or genre_val == "Literature":
                     title_lower = item.get('title', '').lower()
                     for key, val in TITLE_KEYWORD_MAP.items():
@@ -98,10 +93,8 @@ def search_external_media(query, media_type):
                             genre_val = val
                             break
 
-                # Extract Author
                 authors = item.get('author_name', ['Unknown Author'])
                 desc_text = f"Written by {', '.join(authors[:2])}."
-
                 results.append({
                     "external_id": item['key'],
                     "title": item.get('title', 'Unknown Title'),
@@ -116,7 +109,7 @@ def search_external_media(query, media_type):
             url = "https://itunes.apple.com/search"
             params = {"term": query, "entity": "song", "limit": 5}
             response = requests.get(url, params=params, headers=headers).json()
-            
+
             for item in response.get('results', []):
                 results.append({
                     "external_id": str(item['trackId']),
@@ -126,7 +119,7 @@ def search_external_media(query, media_type):
                     "type": "music",
                     "genre": item.get('primaryGenreName', 'Music')
                 })
-                
+
     except Exception as e:
         print(f"API Error: {e}")
         return []

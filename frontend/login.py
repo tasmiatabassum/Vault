@@ -1,12 +1,11 @@
 import streamlit as st
-from backend.auth import get_user_by_email, create_user
+from backend.auth import get_user_by_email, create_user, verify_password
+
 
 def login_page():
-    # Load custom CSS
     with open("frontend/theme.css") as f:
         st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
 
-    # --- HEADER SECTION ---
     st.markdown("<br><br>", unsafe_allow_html=True)
     st.markdown("""
         <div style='text-align:center;'>
@@ -17,8 +16,6 @@ def login_page():
         </div>
     """, unsafe_allow_html=True)
 
-    # --- AUTHENTICATION FORM ---
-    # Center the form using columns
     _, col, _ = st.columns([1, 1.5, 1])
 
     with col:
@@ -26,19 +23,19 @@ def login_page():
             "SELECT ACCESS MODE",
             ["Login", "Sign Up"],
             horizontal=True,
-            label_visibility="collapsed" # Keep it clean
+            label_visibility="collapsed"
         )
-        
+
         st.markdown("<br>", unsafe_allow_html=True)
 
         if mode == "Login":
             email = st.text_input("EMAIL ADDRESS", placeholder="name@email.com")
             password = st.text_input("PASSWORD", type="password", placeholder="••••••••")
-            
+
             st.markdown("<br>", unsafe_allow_html=True)
             if st.button("Enter Vault"):
                 user = get_user_by_email(email)
-                if user and user[3] == password:
+                if user and verify_password(password, user[3]):
                     st.session_state.user = {
                         "id": user[0],
                         "name": user[1],
@@ -53,13 +50,15 @@ def login_page():
             name = st.text_input("FULL NAME", placeholder="John Doe")
             email = st.text_input("EMAIL ADDRESS")
             password = st.text_input("SET PASSWORD", type="password")
-            
+
             st.markdown("<br>", unsafe_allow_html=True)
             if st.button("Create Account"):
-                create_user(name, email, password)
-                st.success("Account created! You may now login.")
+                try:
+                    create_user(name, email, password)
+                    st.success("Account created! You may now login.")
+                except Exception as e:
+                    st.error(f"Could not create account: {e}")
 
-        # --- NAVIGATION ---
         st.markdown("<div style='text-align:center; margin-top: 20px;'>", unsafe_allow_html=True)
         if st.button("← Back"):
             st.session_state.page = "home"
