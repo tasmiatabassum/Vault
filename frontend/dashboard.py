@@ -37,13 +37,11 @@ def dashboard():
 
         st.markdown("<br><br>", unsafe_allow_html=True)
 
+        # Sidebar label for admin
         user = st.session_state.user
         if user['role'] == 'admin':
             st.markdown("---")
             st.caption("ADMIN TOOLS")
-            if st.button("🔧 Admin Panel", use_container_width=True):
-                st.session_state.show_admin = True
-                st.rerun()
 
         st.markdown("<br>", unsafe_allow_html=True)
         if st.button("Log Out", use_container_width=True):
@@ -53,8 +51,8 @@ def dashboard():
     # --- MAIN CONTENT ---
     user = st.session_state.user
 
-    # Show admin panel if flagged
-    if st.session_state.get('show_admin', False) and user['role'] == 'admin':
+    # Admins go directly to admin panel — no user tabs shown at all
+    if user['role'] == 'admin':
         show_admin_panel()
         return
 
@@ -266,9 +264,9 @@ def show_admin_panel():
     """Admin-only panel for system management."""
     st.markdown("<h1 style='font-family: Instrument Serif;'>Admin Dashboard</h1>", unsafe_allow_html=True)
 
-    if st.button("← Back to Main Dashboard"):
-        # Clear the flag so the dashboard renders correctly on return
-        st.session_state.show_admin = False
+    # Log out button for admin
+    if st.button("Log Out"):
+        st.session_state.clear()
         st.rerun()
 
     st.markdown("---")
