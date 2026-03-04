@@ -48,30 +48,32 @@ def _load_css():
 def _media_card(title, type_name, year, genre, desc=None, score=None):
     color = _accent(type_name)
     icon  = _icon(type_name)
-    score_html = (
-        f"<span style='float:right;color:{color};font-size:11px;font-weight:600;'>★ {score:.1f}</span>"
+
+    score_part = (
+        "<span style=\"float:right;color:{c};font-size:11px;font-weight:600;\">&#9733; {s}</span>".format(
+            c=color, s="{:.1f}".format(score))
         if score is not None else ""
     )
-    desc_html = (
-        f"<p style='color:#777;font-size:13px;margin:8px 0 0 0;line-height:1.5;'>"
-        f"{desc[:160]}{'…' if len(desc) > 160 else ''}</p>"
-        if desc else ""
-    )
-    st.markdown(f"""
-        <div class='media-card'>
-            <div style='display:flex;justify-content:space-between;align-items:flex-start;'>
-                <p style='color:{color};font-size:11px;letter-spacing:1px;margin:0 0 4px 0;'>
-                    {icon} {genre.upper()}
-                </p>
-                {score_html}
-            </div>
-            <h3 style='font-family:"Instrument Serif";font-size:22px;margin:0 0 2px 0;'>{title}</h3>
-            <p style='color:#555;font-size:12px;letter-spacing:1px;margin:0;'>
-                {(type_name or "").upper()} &nbsp;·&nbsp; {year}
-            </p>
-            {desc_html}
-        </div>
-    """, unsafe_allow_html=True)
+    desc_part = ""
+    if desc:
+        safe = desc[:160].replace("<", "&lt;").replace(">", "&gt;")
+        ellipsis = "&#8230;" if len(desc) > 160 else ""
+        desc_part = "<p style=\"color:#777;font-size:13px;margin:8px 0 0 0;line-height:1.5;\">{}{}</p>".format(safe, ellipsis)
+
+    parts = [
+        "<div class=\"media-card\">",
+        "<div style=\"display:flex;justify-content:space-between;align-items:flex-start;\">",
+        "<p style=\"color:{c};font-size:11px;letter-spacing:1px;margin:0 0 4px 0;\">{i} {g}</p>".format(
+            c=color, i=icon, g=(genre or "").upper()),
+        score_part,
+        "</div>",
+        "<h3 style=\"font-family:Georgia,serif;font-size:22px;font-weight:400;margin:0 0 2px 0;\">{}</h3>".format(title),
+        "<p style=\"color:#555;font-size:12px;letter-spacing:1px;margin:0;\">{} &nbsp;&middot;&nbsp; {}</p>".format(
+            (type_name or "").upper(), year),
+        desc_part,
+        "</div>",
+    ]
+    st.markdown("".join(parts), unsafe_allow_html=True)
 
 # ── Taste profile pills ───────────────────────────────────────────────
 def _taste_pills(themes):
@@ -80,15 +82,14 @@ def _taste_pills(themes):
     if not genres and not tags:
         return
     pills = ""
+    PILL_STYLE = "background:#1a1a1a;border-radius:20px;padding:3px 12px;font-size:11px;margin:3px;display:inline-block;"
     for g in genres:
-        pills += (f"<span style='background:#1a1a1a;border:1px solid #f7b3d3;color:#f7b3d3;"
-                  f"border-radius:20px;padding:3px 12px;font-size:11px;margin:3px;display:inline-block;'>"
-                  f"{g['theme']}</span>")
+        pills += "<span style=\"{s}border:1px solid #f7b3d3;color:#f7b3d3;\">{v}</span>".format(
+            s=PILL_STYLE, v=g['theme'])
     for t in tags:
-        pills += (f"<span style='background:#1a1a1a;border:1px solid #c6f7d4;color:#c6f7d4;"
-                  f"border-radius:20px;padding:3px 12px;font-size:11px;margin:3px;display:inline-block;'>"
-                  f"# {t['theme']}</span>")
-    st.markdown(f"<div style='margin:8px 0 16px 0;'>{pills}</div>", unsafe_allow_html=True)
+        pills += "<span style=\"{s}border:1px solid #c6f7d4;color:#c6f7d4;\"># {v}</span>".format(
+            s=PILL_STYLE, v=t['theme'])
+    st.markdown("<div style=\"margin:8px 0 16px 0;\">{}</div>".format(pills), unsafe_allow_html=True)
 
 
 # ══════════════════════════════════════════════════════════════════════
@@ -102,7 +103,7 @@ def dashboard():
             st.image(logo_path, width=140)
         else:
             st.markdown(
-                "<h2 style='font-family:\"Instrument Serif\";font-weight:400;'>Vault.</h2>",
+                "<h2 style=\"font-family:Georgia,serif;font-weight:400;\">Vault.</h2>",
                 unsafe_allow_html=True
             )
 
@@ -111,16 +112,15 @@ def dashboard():
         user = st.session_state.user
 
         # User badge
-        st.markdown(f"""
-            <div style='background:#111;border:1px solid #222;border-radius:12px;
-                        padding:10px 14px;margin-bottom:16px;'>
-                <p style='margin:0;font-size:13px;color:#aaa;'>Logged in as</p>
-                <p style='margin:0;font-size:15px;font-weight:500;'>{user['name']}</p>
-                <p style='margin:0;font-size:11px;color:#555;letter-spacing:1px;'>
-                    {user['role'].upper()}
-                </p>
-            </div>
-        """, unsafe_allow_html=True)
+        badge = (
+            "<div style=\"background:#111;border:1px solid #222;border-radius:12px;"
+            "padding:10px 14px;margin-bottom:16px;\">"
+            "<p style=\"margin:0;font-size:13px;color:#aaa;\">Logged in as</p>"
+            "<p style=\"margin:0;font-size:15px;font-weight:500;\">{name}</p>"
+            "<p style=\"margin:0;font-size:11px;color:#555;letter-spacing:1px;\">{role}</p>"
+            "</div>"
+        ).format(name=user['name'], role=user['role'].upper())
+        st.markdown(badge, unsafe_allow_html=True)
 
         if user['role'] == 'admin':
             st.markdown("---")
@@ -138,13 +138,12 @@ def dashboard():
         return
 
     # ── Page header ───────────────────────────────────────────────────
-    st.markdown(f"""
-        <h1 style='font-family:"Instrument Serif",serif;font-size:58px;
-                   font-weight:400;margin-bottom:0;line-height:1.1;'>
-            Hello, {user['name'].split()[0]}.
-        </h1>
-        <div class='rainbow-bar' style='width:100%;height:3px;margin:12px 0 32px 0;'></div>
-    """, unsafe_allow_html=True)
+    first_name = user['name'].split()[0]
+    st.markdown(
+        "<h1 style=\"font-family:Georgia,serif;font-size:58px;font-weight:400;margin-bottom:0;line-height:1.1;\">Hello, {}.</h1>"
+        "<div class=\"rainbow-bar\" style=\"width:100%;height:3px;margin:12px 0 32px 0;\"></div>".format(first_name),
+        unsafe_allow_html=True
+    )
 
     tab_search, tab_vault, tab_recs = st.tabs(["DISCOVER", "MY VAULT", "FOR YOU"])
 
@@ -153,7 +152,7 @@ def dashboard():
     # ══════════════════════════════════════════════════════════════════
     with tab_search:
         st.markdown(
-            "<p style='color:#666;font-size:13px;letter-spacing:1px;'>SEARCH ACROSS MOVIES, BOOKS & MUSIC</p>",
+            "<p style=\"color:#666;font-size:13px;letter-spacing:1px;\">SEARCH ACROSS MOVIES, BOOKS & MUSIC</p>",
             unsafe_allow_html=True
         )
 
@@ -217,7 +216,7 @@ def dashboard():
                                 res = add_to_list_workflow(user['id'], item, target_list)
                                 st.toast(f"Added to {target_list}!") if res is True else st.warning(res)
 
-                    st.markdown("<div style='height:8px'></div>", unsafe_allow_html=True)
+                    st.markdown("<div style=\"height:8px\"></div>", unsafe_allow_html=True)
 
     # ══════════════════════════════════════════════════════════════════
     # TAB 2 — MY VAULT
@@ -229,7 +228,7 @@ def dashboard():
             horizontal=True,
             label_visibility="collapsed"
         )
-        st.markdown("<div style='height:16px'></div>", unsafe_allow_html=True)
+        st.markdown("<div style=\"height:16px\"></div>", unsafe_allow_html=True)
 
         items = (
             get_user_likes(user['id'])
@@ -238,16 +237,17 @@ def dashboard():
         )
 
         if not items:
-            empty_icons = {"Favorites": "♥", "Watchlist": "🎬", "Readlist": "📖", "Playlist": "🎵"}
-            st.markdown(f"""
-                <div style='text-align:center;padding:60px 0;color:#444;'>
-                    <p style='font-size:40px;margin:0;'>{empty_icons[view_mode]}</p>
-                    <p style='font-size:15px;margin:12px 0 0 0;'>Your {view_mode} is empty.</p>
-                    <p style='font-size:13px;color:#333;'>Head to Discover to add some.</p>
-                </div>
-            """, unsafe_allow_html=True)
+            empty_icons = {"Favorites": "&#9829;", "Watchlist": "&#127916;", "Readlist": "&#128214;", "Playlist": "&#127925;"}
+            st.markdown(
+                "<div style=\"text-align:center;padding:60px 0;color:#444;\">"
+                "<p style=\"font-size:40px;margin:0;\">{}</p>"
+                "<p style=\"font-size:15px;margin:12px 0 0 0;\">Your {} is empty.</p>"
+                "<p style=\"font-size:13px;color:#333;\">Head to Discover to add some.</p>"
+                "</div>".format(empty_icons[view_mode], view_mode),
+                unsafe_allow_html=True
+            )
         else:
-            st.markdown(f"<p style='color:#555;font-size:12px;letter-spacing:1px;'>{len(items)} ITEMS</p>",
+            st.markdown(f"<p style=\"color:#555;font-size:12px;letter-spacing:1px;\">{len(items)} ITEMS</p>",
                         unsafe_allow_html=True)
             for idx, item in enumerate(items):
                 type_name  = item.get('type_name', 'media')
@@ -255,18 +255,18 @@ def dashboard():
                 icon       = _icon(type_name)
                 unique_key = f"{view_mode}_{idx}_{item['media_id']}"
 
-                st.markdown(f"""
-                    <div style='border-bottom:1px solid #141414;padding:16px 0;
-                                display:flex;align-items:center;gap:14px;'>
-                        <span style='color:{color};font-size:18px;'>{icon}</span>
-                        <div style='flex:1;'>
-                            <span style='font-size:17px;font-weight:500;'>{item['title']}</span><br>
-                            <span style='color:#555;font-size:11px;letter-spacing:1px;'>
-                                {type_name.upper()} &nbsp;·&nbsp; {item.get('year','N/A')}
-                            </span>
-                        </div>
-                    </div>
-                """, unsafe_allow_html=True)
+                row_html = (
+                    "<div style=\"border-bottom:1px solid #141414;padding:16px 0;"
+                    "display:flex;align-items:center;gap:14px;\">"
+                    "<span style=\"color:{c};font-size:18px;\">{i}</span>"
+                    "<div style=\"flex:1;\">"
+                    "<span style=\"font-size:17px;font-weight:500;\">{t}</span><br>"
+                    "<span style=\"color:#555;font-size:11px;letter-spacing:1px;\">"
+                    "{tt} &nbsp;&middot;&nbsp; {y}"
+                    "</span></div></div>"
+                ).format(c=color, i=icon, t=item['title'],
+                         tt=type_name.upper(), y=item.get('year','N/A'))
+                st.markdown(row_html, unsafe_allow_html=True)
 
                 with st.expander(f"Details & actions — {item['title']}"):
                     t1, t2 = st.columns(2)
@@ -289,11 +289,12 @@ def dashboard():
                         if similar:
                             for s in similar:
                                 sc = _accent(s['type_name'])
-                                st.markdown(
-                                    f"<span style='color:{sc};'>→</span> **{s['title']}** "
-                                    f"<span style='color:#555;font-size:11px;'>({s['type_name']})</span>",
-                                    unsafe_allow_html=True
-                                )
+                                sim_html = (
+                                    "<span style=\"color:{c}\">&#8594;</span> "
+                                    "<strong>{t}</strong> "
+                                    "<span style=\"color:#555;font-size:11px;\">({})</span>"
+                                ).format(s["type_name"], c=sc, t=s["title"])
+                                st.markdown(sim_html, unsafe_allow_html=True)
                         else:
                             st.caption("No similar items found yet.")
 
@@ -304,25 +305,26 @@ def dashboard():
         themes = get_user_theme_weights(user['id'])
         if themes:
             st.markdown(
-                "<p style='color:#555;font-size:12px;letter-spacing:1px;margin-bottom:4px;'>YOUR TASTE PROFILE</p>",
+                "<p style=\"color:#555;font-size:12px;letter-spacing:1px;margin-bottom:4px;\">YOUR TASTE PROFILE</p>",
                 unsafe_allow_html=True
             )
             _taste_pills(themes)
         else:
             st.info("Like some media in Discover to build your taste profile and get recommendations.")
 
-        st.markdown("<div style='height:8px'></div>", unsafe_allow_html=True)
+        st.markdown("<div style=\"height:8px\"></div>", unsafe_allow_html=True)
 
         recs = get_user_recommendations(user['id'])
 
         if not recs:
-            st.markdown("""
-                <div style='text-align:center;padding:48px 0;color:#444;'>
-                    <p style='font-size:36px;margin:0;'>🎯</p>
-                    <p style='font-size:15px;margin:12px 0 4px 0;'>No recommendations yet.</p>
-                    <p style='font-size:13px;color:#333;'>Like at least one item in Discover to get started.</p>
-                </div>
-            """, unsafe_allow_html=True)
+            st.markdown(
+                "<div style=\"text-align:center;padding:48px 0;color:#444;\">"
+                "<p style=\"font-size:36px;margin:0;\">&#127919;</p>"
+                "<p style=\"font-size:15px;margin:12px 0 4px 0;\">No recommendations yet.</p>"
+                "<p style=\"font-size:13px;color:#333;\">Like at least one item in Discover to get started.</p>"
+                "</div>",
+                unsafe_allow_html=True
+            )
             if themes:
                 if st.button("🔄 Generate Recommendations Now"):
                     with st.spinner("Generating…"):
@@ -333,7 +335,7 @@ def dashboard():
                         st.error(result)
         else:
             st.markdown(
-                f"<p style='color:#555;font-size:12px;letter-spacing:1px;'>{len(recs)} PICKS FOR YOU</p>",
+                f"<p style=\"color:#555;font-size:12px;letter-spacing:1px;\">{len(recs)} PICKS FOR YOU</p>",
                 unsafe_allow_html=True
             )
 
@@ -368,7 +370,7 @@ def dashboard():
                         else:
                             st.error(res)
 
-                st.markdown("<div style='height:8px'></div>", unsafe_allow_html=True)
+                st.markdown("<div style=\"height:8px\"></div>", unsafe_allow_html=True)
 
 
 # ══════════════════════════════════════════════════════════════════════
@@ -376,7 +378,7 @@ def dashboard():
 # ══════════════════════════════════════════════════════════════════════
 def show_admin_panel():
     st.markdown(
-        "<h1 style='font-family:\"Instrument Serif\";font-weight:400;'>Admin Dashboard</h1>",
+        "<h1 style=\"font-family:Georgia,serif;font-weight:400;\">Admin Dashboard</h1>",
         unsafe_allow_html=True
     )
 
@@ -421,7 +423,7 @@ def show_admin_panel():
             data = get_format_popularity()
             st.bar_chart(pd.DataFrame(data).set_index("Format")) if data else st.caption("No data.")
 
-        st.markdown("<div style='height:16px'></div>", unsafe_allow_html=True)
+        st.markdown("<div style=\"height:16px\"></div>", unsafe_allow_html=True)
         col3, col4 = st.columns(2)
         with col3:
             st.caption("USER LEADERBOARD")
