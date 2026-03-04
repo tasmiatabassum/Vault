@@ -5,5 +5,5 @@ def get_connection():
         host="localhost",
         database="vaultdb",   
         user="postgres",       
-        password="3198"
+        password="1234"
     )
