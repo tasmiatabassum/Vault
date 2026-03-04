@@ -62,8 +62,8 @@ def dashboard():
     """, unsafe_allow_html=True)
 
     # Updated tabs with "FOR YOU"
-    tab_search, tab_vault, tab_recs, tab_analytics = st.tabs([
-        "SEARCH LIBRARY", "MY VAULT", "FOR YOU", "ANALYTICS"
+    tab_search, tab_vault, tab_recs = st.tabs([
+        "SEARCH LIBRARY", "MY VAULT", "FOR YOU"
     ])
 
     # --- TAB 1: SEARCH & DISCOVER ---
@@ -303,92 +303,92 @@ def dashboard():
                         else:
                             st.error(res)
 
-    # --- TAB 4: ANALYTICS ---
-    with tab_analytics:
-        st.markdown("<h2 style='font-family: Instrument Serif;'>Vault Analytics</h2>", unsafe_allow_html=True)
-
-        # Basic Analytics
-        st.subheader("📊 Basic Analytics")
-        col1, col2 = st.columns(2)
-        with col1:
-            st.caption("★ Top Rated Genres")
-            data = get_top_rated_genres()
-            if data:
-                st.dataframe(pd.DataFrame(data), hide_index=True, use_container_width=True)
-            else:
-                st.caption("Not enough data.")
-
-        with col2:
-            st.caption("📊 Format Popularity")
-            data = get_format_popularity()
-            if data:
-                df_format = pd.DataFrame(data).set_index("Format")
-                st.bar_chart(df_format)
-            else:
-                st.caption("No data.")
-
-        st.markdown("<br>", unsafe_allow_html=True)
-        col3, col4 = st.columns(2)
-        with col3:
-            st.caption("👥 User Leaderboard")
-            data = get_user_activity_level()
-            if data:
-                st.dataframe(pd.DataFrame(data), hide_index=True, use_container_width=True)
-
-        with col4:
-            st.caption("💎 Hidden Gems")
-            data = get_hidden_gems()
-            if data:
-                st.dataframe(pd.DataFrame(data), hide_index=True, use_container_width=True)
-
-        # Advanced Analytics Section
-        st.markdown("---")
-        st.subheader("🔬 Advanced Analytics")
-
-        adv_tab1, adv_tab2, adv_tab3 = st.tabs([
-            "Media Distribution", "User Activity Cube", "Genre Hierarchy"
-        ])
-
-        with adv_tab1:
-            st.caption("Multi-dimensional analysis using GROUPING SETS")
-            data = get_advanced_analytics('distribution')
-            if data:
-                df = pd.DataFrame(data)
-                st.dataframe(df, use_container_width=True, hide_index=True)
-            else:
-                st.info("No data available yet.")
-
-        with adv_tab2:
-            st.caption("User activity analysis using CUBE")
-            data = get_advanced_analytics('activity_cube')
-            if data:
-                df = pd.DataFrame(data)
-                st.dataframe(df, use_container_width=True, hide_index=True)
-            else:
-                st.info("No data available yet.")
-
-        with adv_tab3:
-            st.caption("Hierarchical genre statistics using ROLLUP")
-            data = get_advanced_analytics('genre_hierarchy')
-            if data:
-                df = pd.DataFrame(data)
-                st.dataframe(df, use_container_width=True, hide_index=True)
-            else:
-                st.info("No data available yet.")
-
-        # System Views
-        st.markdown("---")
-        st.subheader("🗄️ System Views")
-
-        with st.expander("Media Search Gallery (SQL View)"):
-            gallery_data = get_search_gallery()
-            if gallery_data:
-                st.dataframe(pd.DataFrame(gallery_data), hide_index=True, use_container_width=True)
-
-        with st.expander("System Audit Logs"):
-            data = get_audit_stats()
-            if data:
-                st.dataframe(pd.DataFrame(data), hide_index=True, use_container_width=True)
+    # # --- TAB 4: ANALYTICS ---
+    # with tab_analytics:
+    #     st.markdown("<h2 style='font-family: Instrument Serif;'>Vault Analytics</h2>", unsafe_allow_html=True)
+    #
+    #     # Basic Analytics
+    #     st.subheader("📊 Basic Analytics")
+    #     col1, col2 = st.columns(2)
+    #     with col1:
+    #         st.caption("★ Top Rated Genres")
+    #         data = get_top_rated_genres()
+    #         if data:
+    #             st.dataframe(pd.DataFrame(data), hide_index=True, use_container_width=True)
+    #         else:
+    #             st.caption("Not enough data.")
+    #
+    #     with col2:
+    #         st.caption("📊 Format Popularity")
+    #         data = get_format_popularity()
+    #         if data:
+    #             df_format = pd.DataFrame(data).set_index("Format")
+    #             st.bar_chart(df_format)
+    #         else:
+    #             st.caption("No data.")
+    #
+    #     st.markdown("<br>", unsafe_allow_html=True)
+    #     col3, col4 = st.columns(2)
+    #     with col3:
+    #         st.caption("👥 User Leaderboard")
+    #         data = get_user_activity_level()
+    #         if data:
+    #             st.dataframe(pd.DataFrame(data), hide_index=True, use_container_width=True)
+    #
+    #     with col4:
+    #         st.caption("💎 Hidden Gems")
+    #         data = get_hidden_gems()
+    #         if data:
+    #             st.dataframe(pd.DataFrame(data), hide_index=True, use_container_width=True)
+    #
+    #     # Advanced Analytics Section
+    #     st.markdown("---")
+    #     st.subheader("🔬 Advanced Analytics")
+    #
+    #     adv_tab1, adv_tab2, adv_tab3 = st.tabs([
+    #         "Media Distribution", "User Activity Cube", "Genre Hierarchy"
+    #     ])
+    #
+    #     with adv_tab1:
+    #         st.caption("Multi-dimensional analysis using GROUPING SETS")
+    #         data = get_advanced_analytics('distribution')
+    #         if data:
+    #             df = pd.DataFrame(data)
+    #             st.dataframe(df, use_container_width=True, hide_index=True)
+    #         else:
+    #             st.info("No data available yet.")
+    #
+    #     with adv_tab2:
+    #         st.caption("User activity analysis using CUBE")
+    #         data = get_advanced_analytics('activity_cube')
+    #         if data:
+    #             df = pd.DataFrame(data)
+    #             st.dataframe(df, use_container_width=True, hide_index=True)
+    #         else:
+    #             st.info("No data available yet.")
+    #
+    #     with adv_tab3:
+    #         st.caption("Hierarchical genre statistics using ROLLUP")
+    #         data = get_advanced_analytics('genre_hierarchy')
+    #         if data:
+    #             df = pd.DataFrame(data)
+    #             st.dataframe(df, use_container_width=True, hide_index=True)
+    #         else:
+    #             st.info("No data available yet.")
+    #
+    #     # System Views
+    #     st.markdown("---")
+    #     st.subheader("🗄️ System Views")
+    #
+    #     with st.expander("Media Search Gallery (SQL View)"):
+    #         gallery_data = get_search_gallery()
+    #         if gallery_data:
+    #             st.dataframe(pd.DataFrame(gallery_data), hide_index=True, use_container_width=True)
+    #
+    #     with st.expander("System Audit Logs"):
+    #         data = get_audit_stats()
+    #         if data:
+    #             st.dataframe(pd.DataFrame(data), hide_index=True, use_container_width=True)
 
 
 def show_admin_panel():
@@ -397,13 +397,17 @@ def show_admin_panel():
 
     # Back button
     if st.button("← Back to Main Dashboard"):
-        st.session_state.show_admin = False
+        st.session_state.page = "dashboard"
         st.rerun()
 
     st.markdown("---")
 
-    tab1, tab2, tab3 = st.tabs(["System Control", "Advanced Analytics", "Audit Logs"])
+    # Admin Tabs
+    tab1, tab2, tab3, tab4 = st.tabs([
+        "System Control", "Basic Analytics", "Advanced Analytics", "Audit Logs"
+    ])
 
+    # TAB 1: System Control
     with tab1:
         st.subheader("🔧 System Maintenance")
 
@@ -446,32 +450,85 @@ def show_admin_panel():
             st.metric("Total Likes", likes_count)
             st.metric("Total Ratings", ratings_count)
 
+    # TAB 2: Basic Analytics
     with tab2:
-        st.subheader("📈 Advanced Analytics Views")
+        st.subheader("📊 Basic Analytics")
 
-        view_choice = st.selectbox(
-            "Select Analysis Type",
-            ["Media Distribution (GROUPING SETS)", "User Activity (CUBE)", "Genre Hierarchy (ROLLUP)"]
-        )
+        col1, col2 = st.columns(2)
+        with col1:
+            st.caption("★ Top Rated Genres")
+            data = get_top_rated_genres()
+            if data:
+                st.dataframe(pd.DataFrame(data), hide_index=True, use_container_width=True)
+            else:
+                st.caption("Not enough data.")
 
-        if "Distribution" in view_choice:
-            data = get_advanced_analytics('distribution')
-            view_name = "Media Distribution Analysis"
-        elif "Activity" in view_choice:
-            data = get_advanced_analytics('activity_cube')
-            view_name = "User Activity Cube"
-        else:
-            data = get_advanced_analytics('genre_hierarchy')
-            view_name = "Genre Hierarchy Statistics"
+        with col2:
+            st.caption("📊 Format Popularity")
+            data = get_format_popularity()
+            if data:
+                df_format = pd.DataFrame(data).set_index("Format")
+                st.bar_chart(df_format)
+            else:
+                st.caption("No data.")
 
-        st.caption(f"**{view_name}**")
-        if data:
-            st.dataframe(pd.DataFrame(data), use_container_width=True, hide_index=True)
-        else:
-            st.info("No data available.")
+        st.markdown("<br>", unsafe_allow_html=True)
+        col3, col4 = st.columns(2)
+        with col3:
+            st.caption("👥 User Leaderboard")
+            data = get_user_activity_level()
+            if data:
+                st.dataframe(pd.DataFrame(data), hide_index=True, use_container_width=True)
 
+        with col4:
+            st.caption("💎 Hidden Gems")
+            data = get_hidden_gems()
+            if data:
+                st.dataframe(pd.DataFrame(data), hide_index=True, use_container_width=True)
+
+    # TAB 3: Advanced Analytics
     with tab3:
-        st.subheader("📋 Complete Audit Log")
+        st.subheader("🔬 Advanced Analytics")
+
+        adv_tab1, adv_tab2, adv_tab3 = st.tabs([
+            "Media Distribution", "User Activity Cube", "Genre Hierarchy"
+        ])
+
+        with adv_tab1:
+            st.caption("Multi-dimensional analysis using GROUPING SETS")
+            data = get_advanced_analytics('distribution')
+            if data:
+                df = pd.DataFrame(data)
+                st.dataframe(df, use_container_width=True, hide_index=True)
+            else:
+                st.info("No data available yet.")
+
+        with adv_tab2:
+            st.caption("User activity analysis using CUBE")
+            data = get_advanced_analytics('activity_cube')
+            if data:
+                df = pd.DataFrame(data)
+                st.dataframe(df, use_container_width=True, hide_index=True)
+            else:
+                st.info("No data available yet.")
+
+        with adv_tab3:
+            st.caption("Hierarchical genre statistics using ROLLUP")
+            data = get_advanced_analytics('genre_hierarchy')
+            if data:
+                df = pd.DataFrame(data)
+                st.dataframe(df, use_container_width=True, hide_index=True)
+            else:
+                st.info("No data available yet.")
+
+    # TAB 4: Audit Logs
+    with tab4:
+        st.subheader("📋 System Audit Logs")
+
+        with st.expander("Media Search Gallery (SQL View)"):
+            gallery_data = get_search_gallery()
+            if gallery_data:
+                st.dataframe(pd.DataFrame(gallery_data), hide_index=True, use_container_width=True)
 
         from backend.db_connect import get_connection
         conn = get_connection()
